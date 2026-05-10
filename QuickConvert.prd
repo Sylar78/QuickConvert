@@ -1,0 +1,331 @@
+PRD — Application Mobile “QuickConvert”
+Vision produit
+
+Créer une application mobile ultra simple permettant de convertir rapidement des fichiers entre :
+
+PDF
+JPG
+PNG
+DOC/DOCX
+
+L’objectif :
+
+convertir un fichier en moins de 10 secondes avec 3 clics maximum.
+
+Positionnement :
+
+simple,
+rapide,
+sans complexité,
+grand public,
+mobile-first.
+1. Résumé produit
+Nom provisoire
+
+QuickConvert
+
+Proposition de valeur
+
+“Convertis tes fichiers instantanément depuis ton smartphone.”
+
+2. Problème utilisateur
+
+Les utilisateurs ont souvent besoin de :
+
+transformer une photo en PDF,
+convertir un PDF en image,
+envoyer un document compatible,
+scanner un document rapidement,
+partager un fichier léger.
+
+Les solutions actuelles sont souvent :
+
+lentes,
+pleines de pubs,
+compliquées,
+ou nécessitent un PC.
+3. Objectifs business
+Court terme (0–3 mois)
+publier rapidement sur iOS + Android,
+atteindre 10k téléchargements,
+tester acquisition TikTok + ASO.
+Moyen terme (3–12 mois)
+1000€/mois récurrents,
+taux conversion premium > 2%,
+référencement App Store.
+4. Cible utilisateur
+Cible principale
+
+18–40 ans :
+
+étudiants,
+freelances,
+employés bureau,
+créateurs contenus.
+Cible secondaire
+seniors,
+enseignants,
+petits entrepreneurs.
+5. Fonctionnalités MVP
+Fonction 1 — PDF → JPG
+
+Entrée :
+
+fichier PDF.
+
+Sortie :
+
+images JPG par page.
+Fonction 2 — JPG/PNG → PDF
+
+Entrée :
+
+plusieurs images.
+
+Sortie :
+
+un PDF unique.
+Fonction 3 — PNG ↔ JPG
+
+Compression + conversion image.
+
+Fonction 4 — DOC/DOCX → PDF
+
+Conversion document.
+
+Fonction 5 — Partage rapide
+
+Partager via :
+
+WhatsApp,
+Mail,
+AirDrop,
+Google Drive.
+Fonction 6 — Historique récent
+
+Afficher :
+
+dernières conversions,
+re-téléchargement rapide.
+6. Fonctionnalités V2
+OCR
+
+Photo → texte.
+
+Compression PDF
+
+Réduire taille fichier.
+
+Signature PDF
+Fusion PDF
+Scanner document IA
+
+Détection automatique :
+
+bordures,
+luminosité,
+perspective.
+7. Expérience utilisateur
+Principe UX
+
+L’utilisateur doit comprendre l’app immédiatement.
+
+Flow principal
+Écran accueil
+
+Grandes cartes :
+
+PDF → JPG
+JPG → PDF
+PNG → JPG
+DOC → PDF
+Étapes conversion
+Sélection fichier
+Conversion
+Télécharger / partager
+Temps cible
+
+Conversion en :
+
+moins de 5 secondes.
+8. Design
+Style
+
+Minimaliste.
+
+Inspirations :
+
+Notion
+Canva
+Dropbox
+Couleurs
+fond clair,
+accent bleu/violet,
+gros boutons.
+9. Monétisation
+Freemium
+Gratuit
+5 conversions/jour,
+pubs discrètes.
+Premium (4,99€/mois)
+conversions illimitées,
+sans pub,
+OCR,
+compression HD.
+Publicités
+
+Format :
+
+bannière légère,
+interstitiel après conversion.
+
+Réseau :
+
+Google AdMob.
+10. Stack technique
+Frontend mobile
+Flutter
+
+Pourquoi :
+
+une seule base code,
+rapide,
+performant.
+Backend
+Supabase
+
+Utilisation :
+
+auth,
+analytics,
+stockage.
+Conversion fichiers
+Mobile natif
+
+Librairies :
+
+PDFium,
+ImageMagick,
+LibreOffice backend.
+Cloud conversion (option)
+
+Serveur conversion :
+
+Node.js
+Python workers.
+11. Architecture simplifiée
+
+Utilisateur →
+App Flutter →
+API conversion →
+Retour fichier converti.
+
+12. KPIs principaux
+Acquisition
+téléchargements/jour,
+coût acquisition.
+Activation
+premier fichier converti.
+
+Objectif :
+
+70%.
+
+Engagement
+conversions/utilisateur/semaine.
+Revenus
+taux premium,
+ARPU,
+RPM pubs.
+13. Marketing
+ASO (très important)
+
+Mots-clés :
+
+PDF converter
+JPG to PDF
+PDF scanner
+file converter
+TikTok/Reels
+
+Contenu :
+
+“Comment transformer une photo en PDF”
+“Convertir un PDF en image en 5 secondes”
+SEO Web
+
+Mini site :
+
+convertisseur gratuit,
+téléchargement app.
+14. Roadmap
+Semaine 1
+UI,
+architecture,
+conversions locales.
+Semaine 2
+partage,
+historique,
+pubs.
+Semaine 3
+paiements,
+analytics,
+optimisation.
+Semaine 4
+publication stores,
+TikTok marketing.
+15. Risques
+Concurrence forte
+
+Solution :
+
+UX ultra simple,
+vitesse,
+marketing TikTok.
+Coût serveur
+
+Solution :
+
+conversions locales maximum.
+App Store SEO
+
+Solution :
+
+niches longues traînes.
+16. Différenciateur principal
+
+La plupart des apps actuelles :
+
+sont lentes,
+abusent des pubs,
+ont une UX confuse.
+
+QuickConvert doit être :
+
+instantané,
+propre,
+minimaliste.
+17. Version MVP idéale
+
+Le MVP parfait contient seulement :
+
+✅ PDF → JPG
+✅ JPG → PDF
+✅ Partage
+✅ Historique
+✅ Publicités
+✅ Premium simple
+
+Tout le reste peut attendre.
+
+18. Objectif réaliste revenus
+3 mois
+10k–50k téléchargements.
+6 mois
+500–1500€/mois.
+
+Avec :
+
+ASO,
+TikTok,
+bons avis utilisateurs.

@@ -1,0 +1,109 @@
+# ─────────────────────────────────────
+# SÉCURITÉ — ne jamais committer ces fichiers
+# ─────────────────────────────────────
+**/.env
+**/.env.*
+!**/.env.example
+**/secrets.json
+**/google-services.json
+**/GoogleService-Info.plist
+**/key.properties
+**/keystore/
+**/*.jks
+**/*.keystore
+**/*.p8
+**/*.p12
+**/*.mobileprovision
+**/*.cer
+
+# ─────────────────────────────────────
+# Flutter / Dart
+# ─────────────────────────────────────
+app/.dart_tool/
+app/.flutter-plugins
+app/.flutter-plugins-dependencies
+app/.packages
+app/.pub-cache/
+app/.pub/
+app/build/
+app/.dart_tool/flutter_build/
+
+# pubspec.lock (garder pour la reproductibilité)
+# app/pubspec.lock  # décommenter si tu veux l'exclure
+
+# ─────────────────────────────────────
+# Web build output
+# ─────────────────────────────────────
+app/web/.dart_tool/
+
+# ─────────────────────────────────────
+# Android
+# ─────────────────────────────────────
+app/android/.gradle/
+app/android/captures/
+app/android/gradlew
+app/android/gradlew.bat
+app/android/local.properties
+app/android/GeneratedPluginRegistrant.java
+app/android/**/GeneratedPluginRegistrant.java
+app/android/app/debug/
+app/android/app/profile/
+app/android/app/release/
+
+# ─────────────────────────────────────
+# iOS
+# ─────────────────────────────────────
+app/ios/Pods/
+app/ios/.symlinks/
+app/ios/Flutter/Flutter.framework
+app/ios/Flutter/Flutter.podspec
+app/ios/Flutter/Generated.xcconfig
+app/ios/Flutter/app.flx
+app/ios/Flutter/app.zip
+app/ios/Flutter/flutter_assets/
+app/ios/Flutter/flutter_export_environment.sh
+app/ios/ServiceDefinitions.json
+app/ios/Runner/GeneratedPluginRegistrant.*
+app/ios/Podfile.lock
+
+# Archives Xcode
+**/*.xcarchive
+**/*.ipa
+
+# ─────────────────────────────────────
+# Node.js backend
+# ─────────────────────────────────────
+app/backend/api/node_modules/
+app/backend/api/package-lock.json
+app/backend/api/*.log
+
+# Fichiers temporaires de conversion
+app/backend/api/uploads/
+app/backend/api/temp/
+
+# ─────────────────────────────────────
+# Système d'exploitation
+# ─────────────────────────────────────
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.swp
+*.swo
+*~
+
+# ─────────────────────────────────────
+# IDEs
+# ─────────────────────────────────────
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+
+# ─────────────────────────────────────
+# Logs et coverage
+# ─────────────────────────────────────
+*.log
+coverage/

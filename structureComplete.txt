@@ -1,0 +1,20 @@
+app/
+├── lib/
+│   ├── core/           → Thème, couleurs (violet/bleu), constantes
+│   ├── models/         → ConversionRecord (Hive), UserModel, SubscriptionModel
+│   ├── providers/      → ConversionProvider, AuthProvider, SubscriptionProvider
+│   ├── services/       → ConversionService, SupabaseService, AdmobService, ShareService, HistoryService
+│   ├── screens/
+│   │   ├── home/       → Grille 6 conversions, nav bas de page
+│   │   ├── conversion/ → Sélection fichier, progress, résultat
+│   │   ├── history/    → Liste swipeable, re-téléchargement
+│   │   ├── premium/    → Plans mensuel/annuel, features, CTA
+│   │   ├── auth/       → Login/Inscription Supabase
+│   │   └── settings/   → Compte, support, légal
+│   ├── widgets/        → ConversionCard, BannerAd, PremiumBanner, ProgressSheet, ResultSheet, HistoryItem
+│   └── main.dart       → Init Hive, Supabase, AdMob
+├── android/            → Permissions, AdMob, Kotlin MainActivity
+├── ios/                → Info.plist, permissions photo/caméra, AdMob
+├── supabase/schema.sql → Tables, RLS, Storage, triggers, fonctions SQL
+├── backend/            → API Node.js + LibreOffice + Docker Compose
+└── README.md           → Guide complet d'installation
