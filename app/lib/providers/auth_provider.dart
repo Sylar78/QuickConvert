@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart'; // AUTH DÉSACTIVÉE
 import '../models/models.dart';
-import '../services/services.dart';
+// import '../services/services.dart'; // AUTH DÉSACTIVÉE
 
 enum AuthState { unknown, authenticated, unauthenticated }
 
 class AuthProvider extends ChangeNotifier {
-  final SupabaseService _supabase = SupabaseService();
+  // final SupabaseService _supabase = SupabaseService(); // AUTH DÉSACTIVÉE
 
   AuthState _authState = AuthState.unknown;
   UserModel _user = UserModel.guest();
@@ -50,49 +50,24 @@ class AuthProvider extends ChangeNotifier {
     // }
   }
 
+  // AUTH DÉSACTIVÉE — toutes les méthodes sont des no-ops pour les tests
+
   Future<bool> signUp(String email, String password) async {
-    _error = null;
-    try {
-      final response = await _supabase.signUpWithEmail(email, password);
-      if (response.user != null) {
-        final newUser = UserModel(
-          id: response.user!.id,
-          email: response.user!.email,
-          createdAt: DateTime.now(),
-        );
-        await _supabase.upsertUserProfile(newUser);
-        return true;
-      }
-      return false;
-    } on AuthException catch (e) {
-      _error = e.message;
-      notifyListeners();
-      return false;
-    } catch (e) {
-      _error = 'Une erreur est survenue';
-      notifyListeners();
-      return false;
-    }
+    // TODO: réactiver avec Supabase
+    _error = 'Inscription désactivée en mode test';
+    notifyListeners();
+    return false;
   }
 
   Future<bool> signIn(String email, String password) async {
-    _error = null;
-    try {
-      final response = await _supabase.signInWithEmail(email, password);
-      return response.user != null;
-    } on AuthException catch (e) {
-      _error = e.message;
-      notifyListeners();
-      return false;
-    } catch (e) {
-      _error = 'Une erreur est survenue';
-      notifyListeners();
-      return false;
-    }
+    // TODO: réactiver avec Supabase
+    _error = 'Connexion désactivée en mode test';
+    notifyListeners();
+    return false;
   }
 
   Future<void> signOut() async {
-    await _supabase.signOut();
+    // TODO: réactiver avec Supabase
   }
 
   void incrementConversions() {
@@ -102,9 +77,7 @@ class AuthProvider extends ChangeNotifier {
 
   void activatePremium(DateTime expiresAt) {
     _user = _user.copyWith(isPremium: true, premiumExpiresAt: expiresAt);
-    if (_user.id != null) {
-      _supabase.activatePremium(_user.id!, expiresAt);
-    }
+    // TODO: réactiver avec Supabase
     notifyListeners();
   }
 

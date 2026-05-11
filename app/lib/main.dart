@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// import 'package:supabase_flutter/supabase_flutter.dart'; // DÉSACTIVÉ
 import 'core/constants.dart';
 import 'models/models.dart';
 import 'services/services.dart';
@@ -30,16 +30,16 @@ Future<void> main() async {
   await Hive.openBox<ConversionRecord>(AppConstants.historyBox);
   await Hive.openBox(AppConstants.settingsBox);
 
-  // ── Supabase ───────────────────────────────────────────────────────────────
-  try {
-    await Supabase.initialize(
-      url: AppConstants.supabaseUrl,
-      anonKey: AppConstants.supabaseAnonKey,
-      debug: false,
-    );
-  } catch (e) {
-    debugPrint('Supabase init error: $e');
-  }
+  // ── Supabase ── DÉSACTIVÉ TEMPORAIREMENT POUR LES TESTS ─────────────────
+  // try {
+  //   await Supabase.initialize(
+  //     url: AppConstants.supabaseUrl,
+  //     anonKey: AppConstants.supabaseAnonKey,
+  //     debug: false,
+  //   );
+  // } catch (e) {
+  //   debugPrint('Supabase init error: $e');
+  // }
 
   // ── AdMob ─────────────────────────────────────────────────────────────────
   try {
