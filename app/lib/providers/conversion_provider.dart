@@ -203,10 +203,12 @@ class ConversionProvider extends ChangeNotifier {
     _progress = 0.0;
     notifyListeners();
 
-    try {
-      final firstName = inputFiles.keys.first;
-      final firstBytes = inputFiles.values.first;
+    final id = _conversionService.generateConversionId();
+    final firstName = inputFiles.keys.first;
+    final firstBytes = inputFiles.values.first;
+    final inputSize = firstBytes.length;
 
+    try {
       switch (type) {
         case ConversionType.pdfToJpg:
           _setProgress(0.2);
@@ -270,6 +272,22 @@ class ConversionProvider extends ChangeNotifier {
           break;      }
 
       _setProgress(0.9);
+
+      // Sauvegarder dans l'historique
+      final outputSize = _outputBytes.isNotEmpty ? _outputBytes.first.length : null;
+      final record = ConversionRecord(
+        id: id,
+        typeIndex: type.index.toString(),
+        inputFileName: firstName,
+        outputFilePath: _outputPaths.isNotEmpty ? _outputPaths.first : null,
+        createdAt: DateTime.now(),
+        inputFileSizeBytes: inputSize,
+        outputFileSizeBytes: outputSize,
+        isSuccess: true,
+      );
+      await _historyService.add(record);
+      _history = _historyService.getAll();
+
       _state = ConversionState.success;
       _setProgress(1.0);
 
@@ -277,6 +295,19 @@ class ConversionProvider extends ChangeNotifier {
         await _adService.showInterstitial();
       }
     } catch (e) {
+      // Sauvegarder l'échec dans l'historique
+      final record = ConversionRecord(
+        id: id,
+        typeIndex: type.index.toString(),
+        inputFileName: firstName,
+        createdAt: DateTime.now(),
+        inputFileSizeBytes: inputSize,
+        isSuccess: false,
+        errorMessage: e.toString(),
+      );
+      await _historyService.add(record);
+      _history = _historyService.getAll();
+
       _state = ConversionState.error;
       _errorMessage = e.toString().replaceFirst('Exception: ', '');
       debugPrint('Web conversion error: $e');
