@@ -22,22 +22,32 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void _init() {
-    _supabase.authStateChanges.listen((data) async {
-      final supaUser = data.session?.user;
-      if (supaUser != null) {
-        _authState = AuthState.authenticated;
-        final profile = await _supabase.getUserProfile();
-        _user = profile ?? UserModel(
-          id: supaUser.id,
-          email: supaUser.email,
-          createdAt: DateTime.now(),
-        );
-      } else {
-        _authState = AuthState.unauthenticated;
-        _user = UserModel.guest();
-      }
-      notifyListeners();
-    });
+    // Auth temporairement désactivée — l'utilisateur démarre en mode invité
+    _authState = AuthState.unauthenticated;
+    _user = UserModel.guest();
+
+    // TODO: réactiver quand Supabase est correctement configuré
+    // try {
+    //   _supabase.authStateChanges.listen((data) async {
+    //     final supaUser = data.session?.user;
+    //     if (supaUser != null) {
+    //       _authState = AuthState.authenticated;
+    //       final profile = await _supabase.getUserProfile();
+    //       _user = profile ?? UserModel(
+    //         id: supaUser.id,
+    //         email: supaUser.email,
+    //         createdAt: DateTime.now(),
+    //       );
+    //     } else {
+    //       _authState = AuthState.unauthenticated;
+    //       _user = UserModel.guest();
+    //     }
+    //     notifyListeners();
+    //   });
+    // } catch (e) {
+    //   debugPrint('Auth init error: $e');
+    //   _authState = AuthState.unauthenticated;
+    // }
   }
 
   Future<bool> signUp(String email, String password) async {
