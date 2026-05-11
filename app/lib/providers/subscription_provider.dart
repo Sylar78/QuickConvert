@@ -5,7 +5,7 @@ import '../core/constants.dart';
 enum SubscriptionStatus { idle, loading, success, error }
 
 class SubscriptionProvider extends ChangeNotifier {
-  final InAppPurchase _iap = InAppPurchase.instance;
+  InAppPurchase? _iap;
 
   SubscriptionStatus _status = SubscriptionStatus.idle;
   List<ProductDetails> _products = [];
@@ -26,16 +26,23 @@ class SubscriptionProvider extends ChangeNotifier {
       .firstOrNull;
 
   Future<void> initialize() async {
-    _available = await _iap.isAvailable();
+    if (kIsWeb) return;
+    try {
+      _iap = InAppPurchase.instance;
+    } catch (_) {
+      return;
+    }
+    _available = await _iap!.isAvailable();
     if (!_available) return;
 
     // Écouter les achats
-    _iap.purchaseStream.listen(_handlePurchaseUpdate);
+    _iap!.purchaseStream.listen(_handlePurchaseUpdate);
 
     await loadProducts();
   }
 
   Future<void> loadProducts() async {
+    if (_iap == null) return;
     _status = SubscriptionStatus.loading;
     notifyListeners();
 
@@ -44,7 +51,7 @@ class SubscriptionProvider extends ChangeNotifier {
         AppConstants.premiumMonthlyId,
         AppConstants.premiumYearlyId,
       };
-      final response = await _iap.queryProductDetails(ids);
+      final response = await _iap!.queryProductDetails(ids);
 
       if (response.error != null) {
         _error = response.error!.message;
@@ -72,13 +79,14 @@ class SubscriptionProvider extends ChangeNotifier {
   }
 
   Future<void> _purchase(ProductDetails product, Function(DateTime) onSuccess) async {
+    if (_iap == null) return;
     _status = SubscriptionStatus.loading;
     _error = null;
     notifyListeners();
 
     try {
       final purchaseParam = PurchaseParam(productDetails: product);
-      await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      await _iap!.buyNonConsumable(purchaseParam: purchaseParam);
     } catch (e) {
       _error = 'Achat échoué: ${e.toString()}';
       _status = SubscriptionStatus.error;
@@ -87,7 +95,8 @@ class SubscriptionProvider extends ChangeNotifier {
   }
 
   Future<void> restorePurchases() async {
-    await _iap.restorePurchases();
+    if (_iap == null) return;
+    await _iap!.restorePurchases();
   }
 
   void _handlePurchaseUpdate(List<PurchaseDetails> purchases) {
@@ -104,7 +113,7 @@ class SubscriptionProvider extends ChangeNotifier {
       }
 
       if (purchase.pendingCompletePurchase) {
-        _iap.completePurchase(purchase);
+        _iap!.completePurchase(purchase);
       }
     }
     notifyListeners();

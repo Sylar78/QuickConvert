@@ -31,14 +31,22 @@ Future<void> main() async {
   await Hive.openBox(AppConstants.settingsBox);
 
   // ── Supabase ───────────────────────────────────────────────────────────────
-  await Supabase.initialize(
-    url: AppConstants.supabaseUrl,
-    anonKey: AppConstants.supabaseAnonKey,
-    debug: false,
-  );
+  try {
+    await Supabase.initialize(
+      url: AppConstants.supabaseUrl,
+      anonKey: AppConstants.supabaseAnonKey,
+      debug: false,
+    );
+  } catch (e) {
+    debugPrint('Supabase init error: $e');
+  }
 
   // ── AdMob ─────────────────────────────────────────────────────────────────
-  await AdmobService().initialize();
+  try {
+    await AdmobService().initialize();
+  } catch (e) {
+    debugPrint('AdMob init error: $e');
+  }
 
   // ── Lancement ─────────────────────────────────────────────────────────────
   runApp(const QuickConvertApp());
