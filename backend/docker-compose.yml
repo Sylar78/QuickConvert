@@ -1,0 +1,51 @@
+# QuickConvert — Backend de conversion (Node.js + Python workers)
+# Ce backend gère les conversions cloud (DOC→PDF via LibreOffice, OCR, compression HD)
+
+version: "3.9"
+
+services:
+  # ── API Gateway Node.js ─────────────────────────────────────────────────
+  api:
+    build: ./api
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_KEY=${SUPABASE_SERVICE_KEY}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+      - libreoffice-worker
+    restart: unless-stopped
+
+  # ── Worker LibreOffice (DOC → PDF) ──────────────────────────────────────
+  libreoffice-worker:
+    image: collabora/code:latest
+    ports:
+      - "9980:9980"
+    environment:
+      - username=admin
+      - password=${LIBREOFFICE_PASSWORD}
+    restart: unless-stopped
+
+  # ── Worker Python (OCR, compression) ────────────────────────────────────
+  python-worker:
+    build: ./workers/python
+    environment:
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # ── Redis (queue de jobs) ────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  redis_data:

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+	<!-- ═══════════════════════════════════════════
+	     APIs à usage restreint utilisées par l'app
+	     ═══════════════════════════════════════════ -->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+
+		<!-- File timestamps — file_picker lit les métadonnées des fichiers choisis -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- C617.1 : l'app fournit cette fonctionnalité à l'utilisateur (conversion de fichiers) -->
+				<string>C617.1</string>
+				<!-- DDA9.1 : accès aux horodatages de fichiers que l'utilisateur a sélectionnés -->
+				<string>DDA9.1</string>
+			</array>
+		</dict>
+
+		<!-- User Defaults — shared_preferences et hive_flutter utilisent NSUserDefaults -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- CA92.1 : accès aux données que l'app elle-même a stockées (préférences, historique) -->
+				<string>CA92.1</string>
+			</array>
+		</dict>
+
+		<!-- System Boot Time — certains packages Flutter (flutter_animate, etc.) l'utilisent -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- 35F9.1 : mesurer le temps écoulé sur l'appareil, non transmis hors de l'appareil -->
+				<string>35F9.1</string>
+			</array>
+		</dict>
+
+		<!-- Disk Space — vérification de l'espace disque avant conversion de fichiers volumineux -->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryDiskSpace</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<!-- E174.1 : écriture/suppression de fichiers à la demande de l'utilisateur -->
+				<string>E174.1</string>
+			</array>
+		</dict>
+
+	</array>
+
+	<!-- ═══════════════════════════════════════════
+	     Données collectées et envoyées à l'éditeur
+	     ═══════════════════════════════════════════ -->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+
+		<!-- Identifiant publicitaire (AdMob) -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeAdvertisingData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
+			</array>
+		</dict>
+
+		<!-- Données de diagnostic / crashs (Firebase / AdMob SDK) -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeCrashData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+
+		<!-- Données de performance -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypePerformanceData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+
+	</array>
+
+	<!-- L'app elle-même ne suit pas l'utilisateur entre apps tierces/sites.
+	     AdMob peut le faire si l'utilisateur accorde l'autorisation ATT. -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+
+	<!-- URL de la politique de confidentialité (à remplacer par la tienne) -->
+	<key>NSPrivacyTrackingDomains</key>
+	<array>
+		<string>googlesyndication.com</string>
+		<string>doubleclick.net</string>
+		<string>googleadservices.com</string>
+	</array>
+
+</dict>
+</plist>
