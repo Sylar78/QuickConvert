@@ -41,7 +41,7 @@ class HistoryItem extends StatelessWidget {
         alignment: Alignment.centerRight,
         padding: const EdgeInsets.only(right: 20),
         decoration: BoxDecoration(
-          color: AppColors.error.withOpacity(0.1),
+          color: AppColors.error.withAlpha(25),
           borderRadius: BorderRadius.circular(16),
         ),
         child: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
@@ -69,7 +69,7 @@ class HistoryItem extends StatelessWidget {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: _typeColor.withOpacity(0.12),
+                  color: _typeColor.withAlpha(30),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Center(

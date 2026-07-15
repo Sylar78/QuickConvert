@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 import '../core/constants.dart';
@@ -64,6 +63,14 @@ class ConversionProvider extends ChangeNotifier {
         final inputFile = File(inputPaths.first);
         inputSize = await inputFile.length();
         inputFileName = inputFile.path.split('/').last;
+
+        // Validate file size
+        if (inputSize > AppConstants.maxFileSizeBytes) {
+          _state = ConversionState.error;
+          _errorMessage = 'Le fichier est trop volumineux (max 50 MB).';
+          notifyListeners();
+          return;
+        }
       } catch (_) {}
     }
 
@@ -207,6 +214,14 @@ class ConversionProvider extends ChangeNotifier {
     final firstName = inputFiles.keys.first;
     final firstBytes = inputFiles.values.first;
     final inputSize = firstBytes.length;
+
+    // Validate file size
+    if (inputSize > AppConstants.maxFileSizeBytes) {
+      _state = ConversionState.error;
+      _errorMessage = 'Le fichier est trop volumineux (max 50 MB).';
+      notifyListeners();
+      return;
+    }
 
     try {
       switch (type) {

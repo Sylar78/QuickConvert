@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/core.dart';
 
 class PremiumBanner extends StatelessWidget {
@@ -19,7 +20,7 @@ class PremiumBanner extends StatelessWidget {
       onTap: onUpgrade,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           gradient: isLow
               ? const LinearGradient(
@@ -28,12 +29,12 @@ class PremiumBanner extends StatelessWidget {
                   end: Alignment.bottomRight,
                 )
               : AppColors.primaryGradient,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: (isLow ? AppColors.premium : AppColors.primary).withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              color: (isLow ? AppColors.premium : AppColors.primary).withAlpha(70),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
@@ -72,18 +73,26 @@ class PremiumBanner extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withAlpha(50),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text(
-                'Upgrade',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Upgrade',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 14),
+                ],
               ),
-            ),
+            ).animate(onPlay: (c) => c.repeat(reverse: true))
+                .moveX(begin: 0, end: 3, duration: 1200.ms, curve: Curves.easeInOut),
           ],
         ),
       ),

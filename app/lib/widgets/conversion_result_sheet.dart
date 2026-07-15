@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/core.dart';
 import '../../models/models.dart';
 
@@ -45,7 +46,7 @@ class ConversionResultSheet extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.success.withOpacity(0.12),
+              color: AppColors.success.withAlpha(25),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -53,7 +54,12 @@ class ConversionResultSheet extends StatelessWidget {
               color: AppColors.success,
               size: 46,
             ),
-          ),
+          ).animate().scale(
+                duration: 600.ms,
+                curve: Curves.elasticOut,
+                begin: const Offset(0, 0),
+                end: const Offset(1, 1),
+              ),
           const SizedBox(height: 16),
 
           Text(

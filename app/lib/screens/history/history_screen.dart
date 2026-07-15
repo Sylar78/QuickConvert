@@ -68,27 +68,40 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildEmpty() {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.history_rounded,
-            size: 80,
-            color: AppColors.textHint,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Aucune conversion encore',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tes conversions apparaîtront ici',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceVariant,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.history_rounded,
+                size: 48,
+                color: AppColors.textHint,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Aucune conversion encore',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Tes conversions apparaîtront ici\naprès ta première utilisation',
+              style: Theme.of(context).textTheme.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

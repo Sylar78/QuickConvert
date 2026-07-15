@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 import '../../core/core.dart';
 
@@ -46,7 +47,11 @@ class ConversionProgressSheet extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              gradient: LinearGradient(
+                colors: [AppColors.primary.withAlpha(30), AppColors.primary.withAlpha(13)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -54,7 +59,8 @@ class ConversionProgressSheet extends StatelessWidget {
               color: AppColors.primary,
               size: 40,
             ),
-          ),
+          ).animate(onPlay: (c) => c.repeat())
+              .rotate(duration: 2000.ms, curve: Curves.easeInOut),
           const SizedBox(height: 20),
 
           Text(

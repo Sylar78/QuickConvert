@@ -252,8 +252,13 @@ class _ConversionScreenState extends State<ConversionScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: _typeColor.withOpacity(0.08),
+                  gradient: LinearGradient(
+                    colors: [_typeColor.withAlpha(18), _typeColor.withAlpha(8)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                   borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: _typeColor.withAlpha(30), width: 1),
                 ),
                 child: Row(
                   children: [
@@ -291,18 +296,34 @@ class _ConversionScreenState extends State<ConversionScreen> {
 
               // Bouton convertir
               if (_selectedFiles.isNotEmpty)
-                ElevatedButton.icon(
-                  onPressed: _convert,
-                  icon: const Icon(Icons.auto_awesome_rounded),
-                  label: Text('Convertir en ${widget.type.outputFormat}'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _typeColor,
-                    minimumSize: const Size(double.infinity, 56),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _typeColor.withAlpha(60),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: ElevatedButton.icon(
+                    onPressed: _convert,
+                    icon: const Icon(Icons.auto_awesome_rounded),
+                    label: Text('Convertir en ${widget.type.outputFormat}'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _typeColor,
+                      minimumSize: const Size(double.infinity, 58),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      textStyle: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.3),
+                ).animate().fadeIn(delay: 100.ms).slideY(begin: 0.2),
             ],
           ),
         ),
@@ -321,7 +342,7 @@ class _ConversionScreenState extends State<ConversionScreen> {
         GestureDetector(
           onTap: _pickFiles,
           child: DottedBorder(
-            color: _typeColor.withOpacity(0.5),
+            color: _typeColor.withAlpha(100),
             strokeWidth: 2,
             dashPattern: const [8, 4],
             borderType: BorderType.RRect,
@@ -330,34 +351,47 @@ class _ConversionScreenState extends State<ConversionScreen> {
               width: double.infinity,
               height: 200,
               decoration: BoxDecoration(
-                color: _typeColor.withOpacity(0.04),
+                gradient: LinearGradient(
+                  colors: [_typeColor.withAlpha(13), _typeColor.withAlpha(5)],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.cloud_upload_rounded,
-                    size: 52,
-                    color: _typeColor.withOpacity(0.7),
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: _typeColor.withAlpha(25),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.cloud_upload_rounded,
+                      size: 32,
+                      color: _typeColor,
+                    ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
                   Text(
                     'Appuie pour sélectionner',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
                           color: _typeColor,
+                          fontWeight: FontWeight.w600,
                         ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '${widget.type.inputFormat}${_allowMultiple ? ' (plusieurs fichiers)' : ''}',
+                    '${widget.type.inputFormat}${_allowMultiple ? ' (plusieurs fichiers)' : ''} • max 50 MB',
                     style: Theme.of(context).textTheme.bodySmall,
                   ),
                 ],
               ),
             ),
           ),
-        ).animate().fadeIn(delay: 100.ms).scale(begin: const Offset(0.95, 0.95)),
+        ).animate().fadeIn(delay: 100.ms).scale(begin: const Offset(0.96, 0.96)),
 
         if (isImage) ...[
           const SizedBox(height: 12),
@@ -423,7 +457,7 @@ class _ConversionScreenState extends State<ConversionScreen> {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: _typeColor.withOpacity(0.1),
+                    color: _typeColor.withAlpha(25),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(Icons.insert_drive_file_rounded, color: _typeColor, size: 22),

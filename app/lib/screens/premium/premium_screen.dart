@@ -55,7 +55,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                     Text(
                       'Convertis sans limites, sans pubs',
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Colors.white.withOpacity(0.85),
+                            color: Colors.white.withAlpha(215),
                           ),
                       textAlign: TextAlign.center,
                     ).animate().fadeIn(delay: 200.ms),
@@ -148,7 +148,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.premium.withOpacity(0.35),
+            color: AppColors.premium.withAlpha(90),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -192,7 +192,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.12),
+                    color: AppColors.success.withAlpha(30),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.check_rounded, color: AppColors.success, size: 16),

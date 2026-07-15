@@ -47,85 +47,95 @@ class ConversionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surface,
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: _color.withAlpha(20), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: _color.withAlpha(25),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
+          ),
+          BoxShadow(
+            color: _color.withAlpha(8),
+            blurRadius: 40,
+            spreadRadius: 4,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: _color.withOpacity(0.12),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: onTap,
-            borderRadius: BorderRadius.circular(20),
-            splashColor: _color.withOpacity(0.1),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Icône avec fond coloré
-                  Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: _color.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(14),
+          splashColor: _color.withAlpha(25),
+          highlightColor: _color.withAlpha(13),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Icône avec fond coloré
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [_color.withAlpha(30), _color.withAlpha(18)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                    child: Icon(_icon, color: _color, size: 26),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  const Spacer(),
+                  child: Icon(_icon, color: _color, size: 26),
+                ),
+                const Spacer(),
 
-                  // Badges format
-                  Row(
-                    children: [
-                      _FormatBadge(label: type.inputFormat, color: _color),
-                      const SizedBox(width: 6),
-                      Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.textHint),
-                      const SizedBox(width: 6),
-                      _FormatBadge(label: type.outputFormat, color: AppColors.primary),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
+                // Badges format
+                Row(
+                  children: [
+                    _FormatBadge(label: type.inputFormat, color: _color),
+                    const SizedBox(width: 6),
+                    Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.textHint),
+                    const SizedBox(width: 6),
+                    _FormatBadge(label: type.outputFormat, color: AppColors.primary),
+                  ],
+                ),
+                const SizedBox(height: 10),
 
-                  // Label principal
-                  Text(
-                    type.label,
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                  ),
-                  const SizedBox(height: 4),
+                // Label principal
+                Text(
+                  type.label,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary,
+                      ),
+                ),
+                const SizedBox(height: 4),
 
-                  // Description
-                  Text(
-                    type.description,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppColors.textSecondary,
-                          height: 1.3,
-                        ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
+                // Description
+                Text(
+                  type.description,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.textSecondary,
+                        height: 1.3,
+                      ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
             ),
           ),
         ),
       ),
     )
-        .animate(delay: Duration(milliseconds: 80 * index))
-        .fadeIn(duration: 400.ms)
-        .slideY(begin: 0.2, end: 0, duration: 400.ms, curve: Curves.easeOutCubic);
+        .animate(delay: Duration(milliseconds: 60 * index))
+        .fadeIn(duration: 500.ms)
+        .slideY(begin: 0.15, end: 0, duration: 500.ms, curve: Curves.easeOutCubic)
+        .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1), duration: 500.ms, curve: Curves.easeOutCubic);
   }
 }
 
@@ -140,7 +150,7 @@ class _FormatBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withAlpha(25),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

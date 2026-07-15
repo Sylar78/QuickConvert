@@ -49,17 +49,18 @@ class _HomeScreenState extends State<HomeScreen> {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         boxShadow: [
           BoxShadow(
             color: AppColors.shadow,
-            blurRadius: 20,
-            offset: const Offset(0, -4),
+            blurRadius: 24,
+            offset: const Offset(0, -6),
           ),
         ],
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
@@ -108,11 +109,12 @@ class _HomeTab extends StatelessWidget {
 
     return SafeArea(
       child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
         slivers: [
           // Header
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -127,12 +129,16 @@ class _HomeTab extends StatelessWidget {
                             style: Theme.of(context).textTheme.displaySmall?.copyWith(
                                   color: AppColors.primary,
                                   fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.5,
                                 ),
-                          ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.1),
+                          ).animate().fadeIn(duration: 600.ms).slideX(begin: -0.05),
+                          const SizedBox(height: 4),
                           Text(
-                            'Convertis instantanément 🚀',
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ).animate().fadeIn(delay: 100.ms, duration: 500.ms),
+                            'Convertis instantanément ⚡',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: AppColors.textSecondary,
+                                ),
+                          ).animate().fadeIn(delay: 150.ms, duration: 500.ms),
                         ],
                       ),
                       if (user.isPremium)
@@ -141,6 +147,13 @@ class _HomeTab extends StatelessWidget {
                           decoration: BoxDecoration(
                             gradient: AppColors.premiumGradient,
                             borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.premium.withAlpha(60),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
@@ -157,32 +170,123 @@ class _HomeTab extends StatelessWidget {
                               ),
                             ],
                           ),
-                        ),
+                        ).animate().fadeIn(delay: 300.ms).scale(begin: const Offset(0.8, 0.8)),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 20),
+
+                  // Daily conversion counter
+                  if (!user.isPremium)
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceVariant,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: AppColors.primary.withAlpha(20),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withAlpha(25),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.auto_awesome_rounded, color: AppColors.primary, size: 20),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '${user.remainingConversions} conversion${user.remainingConversions > 1 ? 's' : ''} restante${user.remainingConversions > 1 ? 's' : ''}',
+                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Limite quotidienne gratuite',
+                                  style: Theme.of(context).textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Progress indicator
+                          SizedBox(
+                            width: 38,
+                            height: 38,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                CircularProgressIndicator(
+                                  value: user.remainingConversions / AppConstants.freeConversionsPerDay,
+                                  strokeWidth: 3.5,
+                                  backgroundColor: AppColors.textHint.withAlpha(40),
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    user.remainingConversions <= 1
+                                        ? AppColors.error
+                                        : AppColors.primary,
+                                  ),
+                                ),
+                                Text(
+                                  '${user.remainingConversions}',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: user.remainingConversions <= 1
+                                        ? AppColors.error
+                                        : AppColors.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.1),
                 ],
               ),
             ),
           ),
 
           // Bannière premium si limite proche
-          if (!user.isPremium && user.remainingConversions <= 3)
+          if (!user.isPremium && user.remainingConversions <= 2)
             SliverToBoxAdapter(
               child: PremiumBanner(
                 remainingConversions: user.remainingConversions,
                 onUpgrade: () => Navigator.pushNamed(context, '/premium'),
-              ).animate().fadeIn(delay: 200.ms),
+              ).animate().fadeIn(delay: 250.ms).slideY(begin: 0.1),
             ),
 
           // Titre section
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
             sliver: SliverToBoxAdapter(
-              child: Text(
-                'Choisir une conversion',
-                style: Theme.of(context).textTheme.headlineSmall,
-              ).animate().fadeIn(delay: 150.ms),
+              child: Row(
+                children: [
+                  Container(
+                    width: 4,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Choisir une conversion',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          letterSpacing: -0.3,
+                        ),
+                  ),
+                ],
+              ).animate().fadeIn(delay: 200.ms),
             ),
           ),
 
@@ -192,9 +296,9 @@ class _HomeTab extends StatelessWidget {
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                mainAxisSpacing: 14,
-                crossAxisSpacing: 14,
-                childAspectRatio: 0.9,
+                mainAxisSpacing: 16,
+                crossAxisSpacing: 16,
+                childAspectRatio: 0.88,
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
