@@ -45,24 +45,34 @@ class ConversionCard extends StatelessWidget {
     }
   }
 
+  IconData _formatIcon(String format) {
+    switch (format.toLowerCase()) {
+      case 'pdf':
+        return Icons.picture_as_pdf_rounded;
+      case 'jpg':
+      case 'jpeg':
+      case 'png':
+        return Icons.image_rounded;
+      case 'doc':
+      case 'docx':
+        return Icons.description_rounded;
+      default:
+        return Icons.insert_drive_file_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: _color.withAlpha(20), width: 1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _color.withAlpha(18), width: 1),
         boxShadow: [
           BoxShadow(
-            color: _color.withAlpha(25),
-            blurRadius: 20,
-            offset: const Offset(0, 6),
-          ),
-          BoxShadow(
-            color: _color.withAlpha(8),
-            blurRadius: 40,
-            spreadRadius: 4,
-            offset: const Offset(0, 12),
+            color: _color.withAlpha(20),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -70,60 +80,61 @@ class ConversionCard extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           splashColor: _color.withAlpha(25),
           highlightColor: _color.withAlpha(13),
           child: Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Icône avec fond coloré
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [_color.withAlpha(30), _color.withAlpha(18)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(14),
+                // Zone principale — grands chips format
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: _LargeFormatChip(
+                          label: type.inputFormat,
+                          icon: _formatIcon(type.inputFormat),
+                          color: _color,
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Icon(Icons.arrow_forward_rounded, size: 22, color: _color.withAlpha(140)),
+                      ),
+                      Expanded(
+                        child: _LargeFormatChip(
+                          label: type.outputFormat,
+                          icon: _formatIcon(type.outputFormat),
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ],
                   ),
-                  child: Icon(_icon, color: _color, size: 26),
-                ),
-                const Spacer(),
-
-                // Badges format
-                Row(
-                  children: [
-                    _FormatBadge(label: type.inputFormat, color: _color),
-                    const SizedBox(width: 6),
-                    Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.textHint),
-                    const SizedBox(width: 6),
-                    _FormatBadge(label: type.outputFormat, color: AppColors.primary),
-                  ],
                 ),
                 const SizedBox(height: 10),
-
-                // Label principal
+                // Label en bas
                 Text(
                   type.label,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary,
                       ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
-
-                // Description
+                const SizedBox(height: 2),
                 Text(
                   type.description,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppColors.textSecondary,
-                        height: 1.3,
+                        fontSize: 10,
                       ),
-                  maxLines: 2,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
@@ -134,32 +145,46 @@ class ConversionCard extends StatelessWidget {
     )
         .animate(delay: Duration(milliseconds: 60 * index))
         .fadeIn(duration: 500.ms)
-        .slideY(begin: 0.15, end: 0, duration: 500.ms, curve: Curves.easeOutCubic)
-        .scale(begin: const Offset(0.95, 0.95), end: const Offset(1, 1), duration: 500.ms, curve: Curves.easeOutCubic);
+        .slideY(begin: 0.1, end: 0, duration: 500.ms, curve: Curves.easeOutCubic)
+        .scale(begin: const Offset(0.97, 0.97), end: const Offset(1, 1), duration: 500.ms, curve: Curves.easeOutCubic);
   }
 }
 
-class _FormatBadge extends StatelessWidget {
+class _LargeFormatChip extends StatelessWidget {
   final String label;
+  final IconData icon;
   final Color color;
 
-  const _FormatBadge({required this.label, required this.color});
+  const _LargeFormatChip({
+    required this.label,
+    required this.icon,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withAlpha(25),
-        borderRadius: BorderRadius.circular(6),
+        color: color.withAlpha(18),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withAlpha(30), width: 1),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.w700,
-          color: color,
-          letterSpacing: 0.5,
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 36, color: color),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w800,
+                color: color,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
         ),
       ),
     );

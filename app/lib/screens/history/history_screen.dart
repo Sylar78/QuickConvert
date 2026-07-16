@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:open_file/open_file.dart';
 import '../../core/core.dart';
 import '../../providers/providers.dart';
-import '../../services/services.dart';
 import '../../widgets/widgets.dart';
 
 class HistoryScreen extends StatefulWidget {
@@ -40,28 +39,44 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
         ],
       ),
-      body: Consumer<ConversionProvider>(
-        builder: (_, prov, __) {
-          if (prov.history.isEmpty) {
-            return _buildEmpty();
-          }
-
-          return ListView.separated(
-            padding: const EdgeInsets.all(20),
-            itemCount: prov.history.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
-            itemBuilder: (context, index) {
-              final record = prov.history[index];
-              return HistoryItem(
-                record: record,
-                onTap: record.outputFilePath != null
-                    ? () => OpenFile.open(record.outputFilePath!)
-                    : null,
-                onDelete: () => prov.deleteHistoryItem(record.id),
+      body: Column(
+        children: [
+          // Bannière publicitaire en haut
+          Consumer<AuthProvider>(
+            builder: (_, auth, __) {
+              if (auth.user.isPremium) return const SizedBox.shrink();
+              return const Padding(
+                padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
+                child: AdBannerContainer(),
               );
             },
-          );
-        },
+          ),
+          Expanded(
+            child: Consumer<ConversionProvider>(
+              builder: (_, prov, __) {
+                if (prov.history.isEmpty) {
+                  return _buildEmpty();
+                }
+
+                return ListView.separated(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: prov.history.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final record = prov.history[index];
+                    return HistoryItem(
+                      record: record,
+                      onTap: record.outputFilePath != null
+                          ? () => OpenFile.open(record.outputFilePath!)
+                          : null,
+                      onDelete: () => prov.deleteHistoryItem(record.id),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

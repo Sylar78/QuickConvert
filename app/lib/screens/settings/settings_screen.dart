@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/core.dart';
 import '../../providers/providers.dart';
+import '../../widgets/widgets.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -112,7 +113,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onTap: () => _launchUrl('https://quickconvert.app/terms'),
           ),
 
-          const SizedBox(height: 32),
+          // Bannière publicitaire
+          if (!user.isPremium)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: AdBannerContainer(),
+            ),
+
+          const SizedBox(height: 20),
 
           // Version
           Center(

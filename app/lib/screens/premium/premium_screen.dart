@@ -94,7 +94,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                     // Restore & Terms
                     Center(
                       child: TextButton(
-                        onPressed: () {},
+                        onPressed: () => _restorePurchases(context),
                         child: const Text('Restaurer mes achats'),
                       ),
                     ),
@@ -207,40 +207,121 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 
   Widget _buildPurchaseButton(BuildContext context) {
+    final subProvider = context.watch<SubscriptionProvider>();
+    final isLoading = subProvider.status == SubscriptionStatus.loading;
+
     return ElevatedButton(
-      onPressed: () => _purchase(context),
+      onPressed: isLoading ? null : () => _purchase(context),
       style: ElevatedButton.styleFrom(
         backgroundColor: AppColors.premium,
+        disabledBackgroundColor: AppColors.premium.withAlpha(150),
         minimumSize: const Size(double.infinity, 58),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         elevation: 0,
       ),
-      child: Text(
-        _isYearly ? 'Démarrer le Premium Annuel' : 'Démarrer le Premium Mensuel',
-        style: const TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-        ),
-      ),
+      child: isLoading
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2.5,
+              ),
+            )
+          : Text(
+              _isYearly ? 'Démarrer le Premium Annuel' : 'Démarrer le Premium Mensuel',
+              style: const TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
     );
   }
 
   Future<void> _purchase(BuildContext context) async {
     final authProvider = context.read<AuthProvider>();
-    final expiresAt = DateTime.now().add(
-      _isYearly ? const Duration(days: 365) : const Duration(days: 30),
-    );
-    authProvider.activatePremium(expiresAt);
+    final subProvider = context.read<SubscriptionProvider>();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('🎉 Bienvenue dans QuickConvert Premium !'),
-        backgroundColor: AppColors.premium,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
+    // Tenter l'achat réel via In-App Purchase
+    if (subProvider.isAvailable) {
+      onSuccess(DateTime expiresAt) {
+        authProvider.activatePremium(expiresAt);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('🎉 Bienvenue dans QuickConvert Premium !'),
+              backgroundColor: AppColors.premium,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+      }
+
+      if (_isYearly) {
+        await subProvider.purchaseYearly(onSuccess);
+      } else {
+        await subProvider.purchaseMonthly(onSuccess);
+      }
+
+      // Si erreur IAP, montrer un message
+      if (subProvider.status == SubscriptionStatus.error && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(subProvider.error ?? 'Erreur lors de l\'achat'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } else {
+      // Fallback mode test (store non disponible — émulateur/web)
+      final expiresAt = DateTime.now().add(
+        _isYearly ? const Duration(days: 365) : const Duration(days: 30),
+      );
+      authProvider.activatePremium(expiresAt);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('🎉 Premium activé (mode test)'),
+            backgroundColor: AppColors.premium,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _restorePurchases(BuildContext context) async {
+    final subProvider = context.read<SubscriptionProvider>();
+    if (subProvider.isAvailable) {
+      await subProvider.restorePurchases();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Restauration des achats en cours...'),
+            backgroundColor: AppColors.primary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Store non disponible'),
+            backgroundColor: AppColors.textSecondary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    }
   }
 
   Widget _buildAlreadyPremium(BuildContext context) {

@@ -13,7 +13,11 @@ class QuickConvertApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ConversionProvider()),
-        ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
+        ChangeNotifierProvider(create: (_) {
+          final sub = SubscriptionProvider();
+          sub.initialize();
+          return sub;
+        }),
       ],
       child: MaterialApp(
         title: AppConstants.appName,

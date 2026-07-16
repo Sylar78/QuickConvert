@@ -268,24 +268,54 @@ class _HomeTab extends StatelessWidget {
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
             sliver: SliverToBoxAdapter(
-              child: Row(
-                children: [
-                  Container(
-                    width: 4,
-                    height: 20,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(2),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFF6F7FD), Color(0xFFF1F3FB)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.primary.withAlpha(18)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 34,
+                      height: 34,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withAlpha(28),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.swap_horiz_rounded,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    'Choisir une conversion',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          letterSpacing: -0.3,
-                        ),
-                  ),
-                ],
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Converter',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  letterSpacing: -0.3,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Sélectionne le format de conversion',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ).animate().fadeIn(delay: 200.ms),
             ),
           ),
@@ -296,9 +326,9 @@ class _HomeTab extends StatelessWidget {
             sliver: SliverGrid(
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                mainAxisSpacing: 16,
-                crossAxisSpacing: 16,
-                childAspectRatio: 0.88,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: 0.85,
               ),
               delegate: SliverChildBuilderDelegate(
                 (context, index) {
@@ -318,6 +348,15 @@ class _HomeTab extends StatelessWidget {
               ),
             ),
           ),
+
+          // Bannière publicitaire pour utilisateurs gratuits
+          if (!user.isPremium)
+            const SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 20),
+                child: AdBannerContainer(),
+              ),
+            ),
 
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],

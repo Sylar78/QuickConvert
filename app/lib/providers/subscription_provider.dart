@@ -107,8 +107,6 @@ class SubscriptionProvider extends ChangeNotifier {
       } else if (purchase.status == PurchaseStatus.purchased ||
           purchase.status == PurchaseStatus.restored) {
         _status = SubscriptionStatus.success;
-        // Activer le premium pour 30 jours (ou 365 pour annuel)
-        final days = purchase.productID == AppConstants.premiumYearlyId ? 365 : 30;
         // L'activation réelle se fait via le callback dans l'UI
       }
 

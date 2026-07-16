@@ -125,7 +125,9 @@ class _BannerCompleter {
   void complete(BannerAd? ad) {
     _result = ad;
     _completed = true;
-    for (final l in _listeners) l(ad);
+    for (final l in _listeners) {
+      l(ad);
+    }
   }
 
   Future<BannerAd?> get future async {
