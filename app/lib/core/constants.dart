@@ -15,8 +15,8 @@ class AppConstants {
   static const String backendUrl = 'http://localhost:3000';
 
   // AdMob IDs (test IDs by default — replace with real ones in production)
-  static const String admobBannerIdAndroid = 'ca-app-pub-3940256099942544/6300978111';
-  static const String admobInterstitialIdAndroid = 'ca-app-pub-3940256099942544/1033173712';
+  static const String admobBannerIdAndroid = 'ca-app-pub-6336563192834287~9992114041';
+  static const String admobInterstitialIdAndroid = 'ca-app-pub-6336563192834287/6052869030';
   static const String admobBannerIdIos = 'ca-app-pub-3940256099942544/2934735716';
   static const String admobInterstitialIdIos = 'ca-app-pub-3940256099942544/4411468910';
 
