@@ -49,6 +49,12 @@
         roundRect(ctx, 16, 16, 480, 480, 96);
         ctx.fillStyle = bgGrad;
         ctx.fill();
+
+        // Soft highlight for depth.
+        ctx.beginPath();
+        ctx.arc(150, 120, 150, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        ctx.fill();
         
         // Inner border
         roundRect(ctx, 16, 16, 480, 480, 96);
@@ -62,91 +68,94 @@
         ctx.shadowBlur = 16;
         ctx.shadowOffsetY = 4;
         
-        roundRect(ctx, 110, 150, 120, 170, 12);
+        roundRect(ctx, 92, 132, 132, 188, 18);
         ctx.fillStyle = 'rgba(255,255,255,0.95)';
         ctx.fill();
         
         // Document lines
         ctx.fillStyle = 'rgba(102,126,234,0.6)';
-        roundRect(ctx, 126, 178, 60, 8, 4); ctx.fill();
+        roundRect(ctx, 112, 166, 70, 10, 5); ctx.fill();
         ctx.fillStyle = 'rgba(102,126,234,0.4)';
-        roundRect(ctx, 126, 194, 88, 8, 4); ctx.fill();
-        roundRect(ctx, 126, 210, 72, 8, 4); ctx.fill();
+        roundRect(ctx, 112, 186, 94, 10, 5); ctx.fill();
+        roundRect(ctx, 112, 206, 78, 10, 5); ctx.fill();
         
         // Document preview area
         ctx.fillStyle = 'rgba(102,126,234,0.12)';
-        roundRect(ctx, 126, 235, 88, 55, 6); ctx.fill();
+        roundRect(ctx, 112, 236, 92, 60, 10); ctx.fill();
         
         // Right document
-        roundRect(ctx, 282, 150, 120, 170, 12);
+        roundRect(ctx, 288, 192, 132, 188, 18);
         ctx.fillStyle = 'rgba(255,255,255,0.95)';
         ctx.fill();
         
         // Document lines
         ctx.fillStyle = 'rgba(118,75,162,0.6)';
-        roundRect(ctx, 298, 178, 60, 8, 4); ctx.fill();
+        roundRect(ctx, 308, 226, 70, 10, 5); ctx.fill();
         ctx.fillStyle = 'rgba(118,75,162,0.4)';
-        roundRect(ctx, 298, 194, 88, 8, 4); ctx.fill();
-        roundRect(ctx, 298, 210, 72, 8, 4); ctx.fill();
+        roundRect(ctx, 308, 246, 94, 10, 5); ctx.fill();
+        roundRect(ctx, 308, 266, 78, 10, 5); ctx.fill();
         
         // Checkmark circle
         ctx.beginPath();
-        ctx.arc(342, 268, 24, 0, Math.PI * 2);
+        ctx.arc(364, 318, 28, 0, Math.PI * 2);
         ctx.fillStyle = '#4ade80';
         ctx.fill();
         
         // Checkmark
         ctx.beginPath();
-        ctx.moveTo(329, 268);
-        ctx.lineTo(338, 278);
-        ctx.lineTo(356, 258);
+        ctx.moveTo(349, 318);
+        ctx.lineTo(360, 329);
+        ctx.lineTo(380, 307);
         ctx.strokeStyle = 'white';
-        ctx.lineWidth = 4;
+        ctx.lineWidth = 5;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.stroke();
         
         ctx.restore();
         
-        // Central arrows
+        // Central convert badge
         ctx.save();
+        ctx.beginPath();
+        ctx.arc(256, 248, 58, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.18)';
+        ctx.fill();
+
         // Arrow right
         ctx.beginPath();
-        ctx.moveTo(245, 225);
-        ctx.lineTo(275, 225);
-        ctx.lineTo(270, 212);
-        ctx.lineTo(295, 235);
+        ctx.moveTo(222, 238);
+        ctx.lineTo(270, 238);
+        ctx.lineTo(262, 223);
+        ctx.lineTo(300, 248);
+        ctx.lineTo(262, 273);
         ctx.lineTo(270, 258);
-        ctx.lineTo(275, 245);
-        ctx.lineTo(245, 245);
+        ctx.lineTo(222, 258);
         ctx.closePath();
         ctx.fillStyle = 'rgba(255,255,255,0.95)';
         ctx.fill();
         
         // Arrow left (below)
         ctx.beginPath();
-        ctx.moveTo(295, 265);
-        ctx.lineTo(265, 265);
-        ctx.lineTo(270, 278);
-        ctx.lineTo(245, 255);
-        ctx.lineTo(270, 232);
-        ctx.lineTo(265, 245);
-        ctx.lineTo(295, 245);
+        ctx.moveTo(290, 286);
+        ctx.lineTo(242, 286);
+        ctx.lineTo(250, 301);
+        ctx.lineTo(212, 276);
+        ctx.lineTo(250, 251);
+        ctx.lineTo(242, 266);
+        ctx.lineTo(290, 266);
         ctx.closePath();
         ctx.fillStyle = 'rgba(255,255,255,0.5)';
         ctx.fill();
         ctx.restore();
-        
-        // App name
-        ctx.font = 'bold 44px Arial, Helvetica, sans-serif';
-        ctx.fillStyle = 'rgba(255,255,255,0.95)';
-        ctx.textAlign = 'center';
-        ctx.fillText('QuickConvert', 256, 395);
-        
-        // Subtitle
-        ctx.font = '18px Arial, Helvetica, sans-serif';
-        ctx.fillStyle = 'rgba(255,255,255,0.7)';
-        ctx.fillText('Convertisseur de fichiers', 256, 425);
+
+        // Small accent dots for balance.
+        ctx.beginPath();
+        ctx.arc(122, 360, 10, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.24)';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(394, 136, 12, 0, Math.PI * 2);
+        ctx.fill();
     }
     
     function drawBanner() {
