@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QuickConvert - Screenshots Play Store</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 40px; background: #f5f5f5; }
+        .section { margin: 30px 0; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h1 { color: #667eea; }
+        h2 { color: #333; margin-bottom: 5px; }
+        .info { color: #666; font-size: 14px; margin-bottom: 15px; }
+        canvas { border: 1px solid #ddd; border-radius: 8px; display: block; margin: 10px 0; max-width: 100%; height: auto; }
+        button { background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; margin: 5px; }
+        button:hover { background: #5a67d8; }
+        .grid { display: flex; flex-wrap: wrap; gap: 20px; }
+        .grid canvas { max-width: 300px; }
+        .btn-group { margin-top: 15px; }
+    </style>
+</head>
+<body>
+    <h1>QuickConvert - Captures d'écran Play Store</h1>
+    <p>Format 9:16 (1080x1920) — Phone | Format 16:9 (1920x1080) — Tablet</p>
+
+    <div class="section">
+        <h2>Téléphone (1080x1920 - 9:16)</h2>
+        <div class="info">4 captures pour le Play Store</div>
+        <div class="grid">
+            <canvas id="phone1" width="1080" height="1920"></canvas>
+            <canvas id="phone2" width="1080" height="1920"></canvas>
+            <canvas id="phone3" width="1080" height="1920"></canvas>
+            <canvas id="phone4" width="1080" height="1920"></canvas>
+        </div>
+        <div class="btn-group">
+            <button onclick="downloadAll('phone', 4)">📥 Télécharger les 4 captures téléphone (PNG)</button>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Tablette (1920x1080 - 16:9)</h2>
+        <div class="info">2 captures pour le Play Store</div>
+        <div class="grid">
+            <canvas id="tablet1" width="1920" height="1080"></canvas>
+            <canvas id="tablet2" width="1920" height="1080"></canvas>
+        </div>
+        <div class="btn-group">
+            <button onclick="downloadAll('tablet', 2)">📥 Télécharger les 2 captures tablette (PNG)</button>
+        </div>
+    </div>
+
+    <script>
+    // ════════════════════════════════════════════════════════════════
+    // HELPERS
+    // ════════════════════════════════════════════════════════════════
+    function roundRect(ctx, x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+    }
+
+    function drawGradientBg(ctx, w, h, colors) {
+        const grad = ctx.createLinearGradient(0, 0, w, h);
+        grad.addColorStop(0, colors[0]);
+        grad.addColorStop(1, colors[1]);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, w, h);
+    }
+
+    function drawPhoneFrame(ctx, x, y, w, h) {
+        // Phone body
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 40;
+        ctx.shadowOffsetY = 15;
+        roundRect(ctx, x, y, w, h, 40);
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fill();
+        ctx.restore();
+
+        // Screen
+        roundRect(ctx, x + 8, y + 50, w - 16, h - 100, 30);
+        ctx.fillStyle = '#f8f9ff';
+        ctx.fill();
+
+        // Notch
+        roundRect(ctx, x + w/2 - 60, y + 12, 120, 28, 14);
+        ctx.fillStyle = '#000';
+        ctx.fill();
+    }
+
+    function drawStatusBar(ctx, x, y, w) {
+        ctx.fillStyle = '#667eea';
+        ctx.fillRect(x, y, w, 35);
+        ctx.font = '12px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'left';
+        ctx.fillText('9:41', x + 15, y + 24);
+        ctx.textAlign = 'right';
+        ctx.fillText('100%', x + w - 15, y + 24);
+    }
+
+    function drawAppBar(ctx, x, y, w, title) {
+        ctx.fillStyle = '#667eea';
+        ctx.fillRect(x, y, w, 55);
+        ctx.font = 'bold 20px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText(title, x + w/2, y + 35);
+    }
+
+    function drawConversionCard(ctx, x, y, w, h, fromFmt, toFmt, label, color, icon) {
+        // Card background
+        roundRect(ctx, x, y, w, h, 14);
+        ctx.fillStyle = 'white';
+        ctx.fill();
+        ctx.strokeStyle = color + '22';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Shadow
+        ctx.save();
+        ctx.shadowColor = color + '20';
+        ctx.shadowBlur = 12;
+        ctx.shadowOffsetY = 4;
+        roundRect(ctx, x, y, w, h, 14);
+        ctx.fill();
+        ctx.restore();
+
+        // Icon circle
+        ctx.beginPath();
+        ctx.arc(x + 35, y + h/2 - 10, 22, 0, Math.PI * 2);
+        ctx.fillStyle = color + '18';
+        ctx.fill();
+        ctx.font = '22px Arial';
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.fillText(icon, x + 35, y + h/2 - 3);
+
+        // Format chips
+        ctx.textAlign = 'left';
+        // From chip
+        roundRect(ctx, x + 68, y + 14, 45, 24, 12);
+        ctx.fillStyle = color + '15';
+        ctx.fill();
+        ctx.font = 'bold 11px Arial';
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.fillText(fromFmt, x + 90, y + 31);
+
+        // Arrow
+        ctx.fillStyle = '#999';
+        ctx.font = '14px Arial';
+        ctx.fillText('→', x + 125, y + 31);
+
+        // To chip
+        roundRect(ctx, x + 140, y + 14, 45, 24, 12);
+        ctx.fillStyle = color + '15';
+        ctx.fill();
+        ctx.font = 'bold 11px Arial';
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.fillText(toFmt, x + 162, y + 31);
+
+        // Label
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 15px Arial';
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillText(label, x + 68, y + h - 20);
+    }
+
+    function drawBottomNav(ctx, x, y, w, activeIndex) {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(x, y, w, 65);
+        ctx.strokeStyle = '#eee';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x + w, y);
+        ctx.stroke();
+
+        const items = [
+            {icon: '🏠', label: 'Accueil'},
+            {icon: '🕑', label: 'Historique'},
+            {icon: '⚡', label: 'Premium'},
+            {icon: '⚙️', label: 'Réglages'},
+        ];
+
+        const itemW = w / items.length;
+        items.forEach((item, i) => {
+            const ix = x + i * itemW + itemW/2;
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = i === activeIndex ? '#667eea' : '#999';
+            ctx.fillText(item.icon, ix, y + 30);
+            ctx.font = '10px Arial';
+            ctx.fillText(item.label, ix, y + 48);
+        });
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // PHONE SCREENSHOT 1: Home Screen
+    // ════════════════════════════════════════════════════════════════
+    function drawPhone1() {
+        const canvas = document.getElementById('phone1');
+        const ctx = canvas.getContext('2d');
+        const w = 1080, h = 1920;
+
+        drawGradientBg(ctx, w, h, ['#667eea', '#764ba2']);
+
+        // Phone frame
+        const px = 140, py = 100, pw = 800, ph = 1650;
+        drawPhoneFrame(ctx, px, py, pw, ph);
+
+        // Screen content area
+        const sx = px + 8, sy = py + 50, sw = pw - 16, sh = ph - 100;
+
+        // Status bar
+        drawStatusBar(ctx, sx, sy, sw);
+
+        // App header
+        ctx.fillStyle = '#f8f9ff';
+        ctx.fillRect(sx, sy + 35, sw, 100);
+        ctx.font = 'bold 28px Arial';
+        ctx.fillStyle = '#667eea';
+        ctx.textAlign = 'left';
+        ctx.fillText('QuickConvert', sx + 20, sy + 75);
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#6B7080';
+        ctx.fillText('Convertis instantanément ⚡', sx + 20, sy + 105);
+
+        // Section title
+        ctx.fillStyle = '#f0f1fc';
+        roundRect(ctx, sx + 20, sy + 145, sw - 40, 55, 14);
+        ctx.fill();
+        ctx.font = 'bold 18px Arial';
+        ctx.fillStyle = '#1a1a2e';
+        ctx.textAlign = 'left';
+        ctx.fillText('🔄 Choisir une conversion', sx + 40, sy + 180);
+
+        // Conversion cards grid (2 columns)
+        const cards = [
+            {from: 'PDF', to: 'JPG', label: 'PDF → JPG', color: '#FF5757', icon: '📄'},
+            {from: 'JPG', to: 'PDF', label: 'JPG → PDF', color: '#4CAF50', icon: '🖼️'},
+            {from: 'PNG', to: 'JPG', label: 'PNG → JPG', color: '#2196F3', icon: '🖼️'},
+            {from: 'DOC', to: 'PDF', label: 'DOC → PDF', color: '#1565C0', icon: '📝'},
+            {from: 'JPG', to: 'PNG', label: 'JPG → PNG', color: '#2196F3', icon: '🖼️'},
+            {from: 'PNG', to: 'PDF', label: 'PNG → PDF', color: '#4CAF50', icon: '🖼️'},
+            {from: 'SVG', to: 'PNG', label: 'SVG → PNG', color: '#FF9800', icon: '✏️'},
+        ];
+
+        const cardW = (sw - 60) / 2;
+        const cardH = 100;
+        const startY = sy + 220;
+
+        cards.forEach((card, i) => {
+            const col = i % 2;
+            const row = Math.floor(i / 2);
+            const cx = sx + 20 + col * (cardW + 20);
+            const cy = startY + row * (cardH + 15);
+            drawConversionCard(ctx, cx, cy, cardW, cardH, card.from, card.to, card.label, card.color, card.icon);
+        });
+
+        // Bottom nav
+        drawBottomNav(ctx, sx, sy + sh - 65, sw, 0);
+
+        // Title overlay at top
+        ctx.font = 'bold 42px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('7 conversions disponibles', w/2, h - 60);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // PHONE SCREENSHOT 2: SVG→PNG Conversion
+    // ════════════════════════════════════════════════════════════════
+    function drawPhone2() {
+        const canvas = document.getElementById('phone2');
+        const ctx = canvas.getContext('2d');
+        const w = 1080, h = 1920;
+
+        drawGradientBg(ctx, w, h, ['#FF9800', '#F57C00']);
+
+        const px = 140, py = 100, pw = 800, ph = 1650;
+        drawPhoneFrame(ctx, px, py, pw, ph);
+
+        const sx = px + 8, sy = py + 50, sw = pw - 16, sh = ph - 100;
+
+        // Header
+        ctx.fillStyle = '#FF9800';
+        roundRect(ctx, sx, sy, sw, 90, {tl:30, tr:30, bl:0, br:0});
+        ctx.fill();
+        ctx.fillRect(sx, sy + 30, sw, 60);
+        ctx.font = '14px Arial';
+        ctx.fillStyle = 'rgba(255,255,255,0.8)';
+        ctx.textAlign = 'left';
+        ctx.fillText('←', sx + 20, sy + 35);
+        ctx.font = 'bold 22px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('SVG → PNG', sx + sw/2, sy + 60);
+
+        // Description
+        ctx.fillStyle = '#f8f9ff';
+        ctx.fillRect(sx, sy + 90, sw, sh - 90);
+        roundRect(ctx, sx + 20, sy + 110, sw - 40, 50, 12);
+        ctx.fillStyle = '#FFF3E0';
+        ctx.fill();
+        ctx.font = '15px Arial';
+        ctx.fillStyle = '#FF9800';
+        ctx.textAlign = 'center';
+        ctx.fillText('ℹ️  Convertir tes SVG en images PNG', sx + sw/2, sy + 142);
+
+        // File selected
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = '#1a1a2e';
+        ctx.textAlign = 'left';
+        ctx.fillText('1 fichier sélectionné', sx + 30, sy + 200);
+
+        // File card
+        roundRect(ctx, sx + 20, sy + 215, sw - 40, 70, 12);
+        ctx.fillStyle = 'white';
+        ctx.fill();
+        ctx.strokeStyle = '#FF980030';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(sx + 60, sy + 250, 20, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFF3E0';
+        ctx.fill();
+        ctx.font = '18px Arial';
+        ctx.fillStyle = '#FF9800';
+        ctx.textAlign = 'center';
+        ctx.fillText('📁', sx + 60, sy + 257);
+
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 15px Arial';
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillText('logo_512x512.svg', sx + 95, sy + 245);
+        ctx.font = '13px Arial';
+        ctx.fillStyle = '#6B7080';
+        ctx.fillText('2.7 KB', sx + 95, sy + 268);
+
+        // Convert button
+        roundRect(ctx, sx + 30, sy + 330, sw - 60, 56, 28);
+        const btnGrad = ctx.createLinearGradient(sx + 30, 0, sx + sw - 30, 0);
+        btnGrad.addColorStop(0, '#FF9800');
+        btnGrad.addColorStop(1, '#F57C00');
+        ctx.fillStyle = btnGrad;
+        ctx.fill();
+        ctx.font = 'bold 18px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('🚀 Convertir en PNG', sx + sw/2, sy + 365);
+
+        // Success result
+        roundRect(ctx, sx + 20, sy + 420, sw - 40, 180, 16);
+        ctx.fillStyle = '#E8F5E9';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(sx + sw/2, sy + 490, 30, 0, Math.PI * 2);
+        ctx.fillStyle = '#4CAF50';
+        ctx.fill();
+        ctx.font = '30px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('✓', sx + sw/2, sy + 500);
+        ctx.font = 'bold 18px Arial';
+        ctx.fillStyle = '#2E7D32';
+        ctx.fillText('Conversion réussie !', sx + sw/2, sy + 550);
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#4CAF50';
+        ctx.fillText('logo_512x512.png — 45 KB', sx + sw/2, sy + 578);
+
+        // Title overlay
+        ctx.font = 'bold 42px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('Conversion SVG → PNG', w/2, h - 60);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // PHONE SCREENSHOT 3: Premium Screen
+    // ════════════════════════════════════════════════════════════════
+    function drawPhone3() {
+        const canvas = document.getElementById('phone3');
+        const ctx = canvas.getContext('2d');
+        const w = 1080, h = 1920;
+
+        drawGradientBg(ctx, w, h, ['#764ba2', '#667eea']);
+
+        const px = 140, py = 100, pw = 800, ph = 1650;
+        drawPhoneFrame(ctx, px, py, pw, ph);
+
+        const sx = px + 8, sy = py + 50, sw = pw - 16, sh = ph - 100;
+
+        // Premium header gradient
+        const headerGrad = ctx.createLinearGradient(sx, sy, sx, sy + 250);
+        headerGrad.addColorStop(0, '#FF9800');
+        headerGrad.addColorStop(1, '#F57C00');
+        roundRect(ctx, sx, sy, sw, 250, {tl:30, tr:30, bl:0, br:0});
+        ctx.fillStyle = headerGrad;
+        ctx.fill();
+
+        ctx.font = '50px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('⚡', sx + sw/2, sy + 80);
+        ctx.font = 'bold 26px Arial';
+        ctx.fillText('QuickConvert Premium', sx + sw/2, sy + 130);
+        ctx.font = '16px Arial';
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fillText('Convertis sans limites, sans pubs', sx + sw/2, sy + 165);
+
+        // Content
+        ctx.fillStyle = '#f8f9ff';
+        ctx.fillRect(sx, sy + 250, sw, sh - 250);
+
+        // Plan toggle
+        roundRect(ctx, sx + 30, sy + 275, sw - 60, 65, 14);
+        ctx.fillStyle = '#f0f1fc';
+        ctx.fill();
+
+        // Monthly
+        ctx.font = '13px Arial';
+        ctx.fillStyle = '#666';
+        ctx.textAlign = 'center';
+        ctx.fillText('Mensuel', sx + sw/4, sy + 302);
+        ctx.fillText('4,99€/mois', sx + sw/4, sy + 322);
+
+        // Annual (selected)
+        roundRect(ctx, sx + sw/2 - 10, sy + 280, sw/2 - 30, 55, 12);
+        ctx.fillStyle = 'white';
+        ctx.fill();
+        ctx.shadowColor = 'rgba(0,0,0,0.1)';
+        ctx.shadowBlur = 8;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.font = 'bold 13px Arial';
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillText('Annuel', sx + 3*sw/4 - 10, sy + 302);
+        ctx.fillText('2,99€/mois', sx + 3*sw/4 - 10, sy + 322);
+
+        // -40% badge
+        roundRect(ctx, sx + sw - 75, sy + 282, 40, 20, 10);
+        ctx.fillStyle = '#4CAF50';
+        ctx.fill();
+        ctx.font = 'bold 10px Arial';
+        ctx.fillStyle = 'white';
+        ctx.fillText('-40%', sx + sw - 55, sy + 296);
+
+        // Price card
+        roundRect(ctx, sx + 30, sy + 365, sw - 60, 90, 18);
+        const priceGrad = ctx.createLinearGradient(sx + 30, sy + 365, sx + sw - 30, sy + 455);
+        priceGrad.addColorStop(0, '#FFB74D');
+        priceGrad.addColorStop(1, '#FF9800');
+        ctx.fillStyle = priceGrad;
+        ctx.fill();
+        ctx.font = 'bold 30px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'left';
+        ctx.fillText('24,99€/an', sx + 55, sy + 415);
+        ctx.font = '13px Arial';
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fillText('soit 2,99€/mois — économise 40%', sx + 55, sy + 440);
+        ctx.font = '35px Arial';
+        ctx.textAlign = 'right';
+        ctx.fillStyle = 'white';
+        ctx.fillText('⭐', sx + sw - 55, sy + 425);
+
+        // Features
+        const features = [
+            'Conversions illimitées',
+            'Sans publicité',
+            'OCR (texte depuis photo)',
+            'Compression HD',
+            'Support prioritaire',
+        ];
+        ctx.textAlign = 'left';
+        let fy = sy + 490;
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillText('Tout ce que tu obtiens', sx + 30, fy);
+        fy += 30;
+
+        features.forEach(feat => {
+            ctx.font = '15px Arial';
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillText('✓', sx + 40, fy + 2);
+            ctx.fillStyle = '#333';
+            ctx.fillText(feat, sx + 70, fy);
+            fy += 35;
+        });
+
+        // CTA button
+        roundRect(ctx, sx + 30, fy + 20, sw - 60, 56, 28);
+        ctx.fillStyle = '#FF9800';
+        ctx.fill();
+        ctx.font = 'bold 18px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('Démarrer le Premium Annuel', sx + sw/2, fy + 55);
+
+        // Title overlay
+        ctx.font = 'bold 42px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('Premium à 24,99€/an', w/2, h - 60);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // PHONE SCREENSHOT 4: History
+    // ════════════════════════════════════════════════════════════════
+    function drawPhone4() {
+        const canvas = document.getElementById('phone4');
+        const ctx = canvas.getContext('2d');
+        const w = 1080, h = 1920;
+
+        drawGradientBg(ctx, w, h, ['#4CAF50', '#2E7D32']);
+
+        const px = 140, py = 100, pw = 800, ph = 1650;
+        drawPhoneFrame(ctx, px, py, pw, ph);
+
+        const sx = px + 8, sy = py + 50, sw = pw - 16, sh = ph - 100;
+
+        drawStatusBar(ctx, sx, sy, sw);
+        drawAppBar(ctx, sx, sy + 35, sw, 'Historique');
+
+        ctx.fillStyle = '#f8f9ff';
+        ctx.fillRect(sx, sy + 90, sw, sh - 155);
+
+        // History items
+        const history = [
+            {name: 'rapport.pdf → jpg', date: '20/07/26 14:32', status: '✓', color: '#4CAF50'},
+            {name: 'photo.png → jpg', date: '20/07/26 13:10', status: '✓', color: '#4CAF50'},
+            {name: 'logo.svg → png', date: '20/07/26 12:45', status: '✓', color: '#4CAF50'},
+            {name: 'CV.doc → pdf', date: '19/07/26 18:20', status: '✓', color: '#4CAF50'},
+            {name: 'banner.jpg → png', date: '19/07/26 16:05', status: '✓', color: '#4CAF50'},
+            {name: 'slides.png → pdf', date: '19/07/26 10:30', status: '✓', color: '#4CAF50'},
+        ];
+
+        let hy = sy + 110;
+        history.forEach((item, i) => {
+            roundRect(ctx, sx + 15, hy, sw - 30, 70, 12);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            ctx.strokeStyle = '#eee';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Status icon
+            ctx.beginPath();
+            ctx.arc(sx + 50, hy + 35, 18, 0, Math.PI * 2);
+            ctx.fillStyle = item.color + '18';
+            ctx.fill();
+            ctx.font = '18px Arial';
+            ctx.fillStyle = item.color;
+            ctx.textAlign = 'center';
+            ctx.fillText(item.status, sx + 50, hy + 42);
+
+            ctx.textAlign = 'left';
+            ctx.font = 'bold 15px Arial';
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillText(item.name, sx + 80, hy + 30);
+            ctx.font = '12px Arial';
+            ctx.fillStyle = '#6B7080';
+            ctx.fillText(item.date, sx + 80, hy + 52);
+
+            hy += 82;
+        });
+
+        drawBottomNav(ctx, sx, sy + sh - 65, sw, 1);
+
+        // Title overlay
+        ctx.font = 'bold 42px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('Historique complet', w/2, h - 60);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // TABLET SCREENSHOT 1: Home landscape
+    // ════════════════════════════════════════════════════════════════
+    function drawTablet1() {
+        const canvas = document.getElementById('tablet1');
+        const ctx = canvas.getContext('2d');
+        const w = 1920, h = 1080;
+
+        drawGradientBg(ctx, w, h, ['#667eea', '#764ba2']);
+
+        // Tablet frame
+        const tx = 120, ty = 60, tw = 1680, th = 960;
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 50;
+        ctx.shadowOffsetY = 15;
+        roundRect(ctx, tx, ty, tw, th, 30);
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fill();
+        ctx.restore();
+
+        // Screen
+        roundRect(ctx, tx + 12, ty + 12, tw - 24, th - 24, 22);
+        ctx.fillStyle = '#f8f9ff';
+        ctx.fill();
+
+        const sx = tx + 12, sy = ty + 12, sw = tw - 24, sh = th - 24;
+
+        // Header
+        ctx.fillStyle = 'white';
+        ctx.fillRect(sx, sy, sw, 70);
+        ctx.font = 'bold 28px Arial';
+        ctx.fillStyle = '#667eea';
+        ctx.textAlign = 'left';
+        ctx.fillText('QuickConvert', sx + 30, sy + 45);
+        ctx.font = '16px Arial';
+        ctx.fillStyle = '#6B7080';
+        ctx.fillText('Convertis instantanément ⚡', sx + 250, sy + 45);
+
+        // Conversion cards in 4-column grid
+        const cards = [
+            {from: 'PDF', to: 'JPG', label: 'PDF → JPG', color: '#FF5757', icon: '📄'},
+            {from: 'JPG', to: 'PDF', label: 'JPG → PDF', color: '#4CAF50', icon: '🖼️'},
+            {from: 'PNG', to: 'JPG', label: 'PNG → JPG', color: '#2196F3', icon: '🖼️'},
+            {from: 'DOC', to: 'PDF', label: 'DOC → PDF', color: '#1565C0', icon: '📝'},
+            {from: 'JPG', to: 'PNG', label: 'JPG → PNG', color: '#2196F3', icon: '🖼️'},
+            {from: 'PNG', to: 'PDF', label: 'PNG → PDF', color: '#4CAF50', icon: '🖼️'},
+            {from: 'SVG', to: 'PNG', label: 'SVG → PNG', color: '#FF9800', icon: '✏️'},
+        ];
+
+        const cols = 4;
+        const cardW = (sw - 100) / cols;
+        const cardH = 110;
+        const startY = sy + 100;
+
+        cards.forEach((card, i) => {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            const cx = sx + 30 + col * (cardW + 15);
+            const cy = startY + row * (cardH + 20);
+            drawConversionCard(ctx, cx, cy, cardW, cardH, card.from, card.to, card.label, card.color, card.icon);
+        });
+
+        // Sidebar info
+        const infoX = sx + 30;
+        const infoY = startY + 280;
+        roundRect(ctx, infoX, infoY, sw - 60, 200, 18);
+        ctx.fillStyle = '#f0f1fc';
+        ctx.fill();
+        ctx.font = 'bold 20px Arial';
+        ctx.fillStyle = '#1a1a2e';
+        ctx.textAlign = 'left';
+        ctx.fillText('✨ Fonctionnalités', infoX + 25, infoY + 40);
+
+        const feats = ['Conversion rapide et locale', 'Pas de serveur requis', 'Historique complet', 'Mode Premium sans pubs'];
+        feats.forEach((f, i) => {
+            ctx.font = '16px Arial';
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillText('✓', infoX + 30, infoY + 75 + i * 35);
+            ctx.fillStyle = '#333';
+            ctx.fillText(f, infoX + 55, infoY + 75 + i * 35);
+        });
+
+        // Bottom nav
+        drawBottomNav(ctx, sx, sy + sh - 60, sw, 0);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // TABLET SCREENSHOT 2: Conversion in progress
+    // ════════════════════════════════════════════════════════════════
+    function drawTablet2() {
+        const canvas = document.getElementById('tablet2');
+        const ctx = canvas.getContext('2d');
+        const w = 1920, h = 1080;
+
+        drawGradientBg(ctx, w, h, ['#FF9800', '#F57C00']);
+
+        // Tablet frame
+        const tx = 120, ty = 60, tw = 1680, th = 960;
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 50;
+        ctx.shadowOffsetY = 15;
+        roundRect(ctx, tx, ty, tw, th, 30);
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fill();
+        ctx.restore();
+
+        roundRect(ctx, tx + 12, ty + 12, tw - 24, th - 24, 22);
+        ctx.fillStyle = '#f8f9ff';
+        ctx.fill();
+
+        const sx = tx + 12, sy = ty + 12, sw = tw - 24, sh = th - 24;
+
+        // Orange header
+        ctx.fillStyle = '#FF9800';
+        ctx.fillRect(sx, sy, sw, 70);
+        roundRect(ctx, sx, sy, sw, 70, {tl:22, tr:22, bl:0, br:0});
+        ctx.fill();
+        ctx.font = 'bold 24px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('SVG → PNG', sx + sw/2, sy + 45);
+
+        // Left panel: file selection
+        const panelW = sw / 2 - 30;
+        roundRect(ctx, sx + 20, sy + 90, panelW, sh - 110, 16);
+        ctx.fillStyle = 'white';
+        ctx.fill();
+        ctx.strokeStyle = '#eee';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.font = 'bold 18px Arial';
+        ctx.fillStyle = '#1a1a2e';
+        ctx.textAlign = 'left';
+        ctx.fillText('Fichier sélectionné', sx + 45, sy + 130);
+
+        // File card
+        roundRect(ctx, sx + 40, sy + 150, panelW - 40, 80, 12);
+        ctx.fillStyle = '#FFF3E0';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(sx + 85, sy + 190, 22, 0, Math.PI * 2);
+        ctx.fillStyle = '#FF9800';
+        ctx.fill();
+        ctx.font = '20px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('📄', sx + 85, sy + 197);
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fillText('illustration.svg', sx + 120, sy + 185);
+        ctx.font = '13px Arial';
+        ctx.fillStyle = '#6B7080';
+        ctx.fillText('4.2 KB • SVG Vector', sx + 120, sy + 208);
+
+        // Convert button
+        roundRect(ctx, sx + 40, sy + 260, panelW - 40, 50, 25);
+        const btnGrad2 = ctx.createLinearGradient(sx + 40, 0, sx + panelW, 0);
+        btnGrad2.addColorStop(0, '#FF9800');
+        btnGrad2.addColorStop(1, '#F57C00');
+        ctx.fillStyle = btnGrad2;
+        ctx.fill();
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('🚀 Convertir', sx + 20 + panelW/2, sy + 291);
+
+        // Right panel: result
+        const rpx = sx + sw/2 + 10;
+        roundRect(ctx, rpx, sy + 90, panelW, sh - 110, 16);
+        ctx.fillStyle = 'white';
+        ctx.fill();
+        ctx.strokeStyle = '#eee';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        ctx.font = 'bold 18px Arial';
+        ctx.fillStyle = '#1a1a2e';
+        ctx.textAlign = 'left';
+        ctx.fillText('Résultat', rpx + 25, sy + 130);
+
+        // Success indicator
+        ctx.beginPath();
+        ctx.arc(rpx + panelW/2, sy + 250, 50, 0, Math.PI * 2);
+        ctx.fillStyle = '#E8F5E9';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(rpx + panelW/2, sy + 250, 35, 0, Math.PI * 2);
+        ctx.fillStyle = '#4CAF50';
+        ctx.fill();
+        ctx.font = 'bold 35px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('✓', rpx + panelW/2, sy + 263);
+
+        ctx.font = 'bold 18px Arial';
+        ctx.fillStyle = '#2E7D32';
+        ctx.fillText('Conversion réussie !', rpx + panelW/2, sy + 330);
+
+        // Output info
+        roundRect(ctx, rpx + 30, sy + 360, panelW - 60, 70, 12);
+        ctx.fillStyle = '#f8f9ff';
+        ctx.fill();
+        ctx.font = '15px Arial';
+        ctx.fillStyle = '#333';
+        ctx.textAlign = 'center';
+        ctx.fillText('illustration.png', rpx + panelW/2, sy + 390);
+        ctx.font = '13px Arial';
+        ctx.fillStyle = '#6B7080';
+        ctx.fillText('1024 × 1024 px • 58 KB', rpx + panelW/2, sy + 415);
+
+        // Download button
+        roundRect(ctx, rpx + 50, sy + 460, panelW - 100, 45, 22);
+        ctx.fillStyle = '#667eea';
+        ctx.fill();
+        ctx.font = 'bold 15px Arial';
+        ctx.fillStyle = 'white';
+        ctx.fillText('📥 Télécharger', rpx + panelW/2, sy + 489);
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // DOWNLOAD
+    // ════════════════════════════════════════════════════════════════
+    function downloadCanvas(canvasId, filename) {
+        const canvas = document.getElementById(canvasId);
+        const link = document.createElement('a');
+        link.download = filename;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }
+
+    function downloadAll(prefix, count) {
+        for (let i = 1; i <= count; i++) {
+            setTimeout(() => {
+                downloadCanvas(prefix + i, `quickconvert_${prefix}_screenshot_${i}.png`);
+            }, i * 500);
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // INIT
+    // ════════════════════════════════════════════════════════════════
+    window.onload = function() {
+        drawPhone1();
+        drawPhone2();
+        drawPhone3();
+        drawPhone4();
+        drawTablet1();
+        drawTablet2();
+    };
+    </script>
+</body>
+</html>
