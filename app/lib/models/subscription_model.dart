@@ -66,7 +66,7 @@ class SubscriptionModel {
 
   static const SubscriptionModel yearly = SubscriptionModel(
     plan: SubscriptionPlan.premiumYearly,
-    price: 2.99, // 35.88/year = ~2.99/month
+    price: 2.99, // 24.99/year = ~2.08/month displayed
     currency: 'EUR',
   );
 }

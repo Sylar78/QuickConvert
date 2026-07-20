@@ -27,6 +27,7 @@ class _HomeScreenState extends State<HomeScreen> {
     ConversionType.docToPdf,
     ConversionType.jpgToPng,
     ConversionType.pngToPdf,
+    ConversionType.svgToPng,
   ];
 
   @override

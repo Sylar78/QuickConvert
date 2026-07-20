@@ -27,6 +27,8 @@ class ConversionCard extends StatelessWidget {
         return AppColors.pngColor;
       case ConversionType.docToPdf:
         return AppColors.docColor;
+      case ConversionType.svgToPng:
+        return AppColors.svgColor;
     }
   }
 
@@ -42,6 +44,8 @@ class ConversionCard extends StatelessWidget {
         return Icons.photo_filter_rounded;
       case ConversionType.docToPdf:
         return Icons.description_rounded;
+      case ConversionType.svgToPng:
+        return Icons.draw_rounded;
     }
   }
 
@@ -56,6 +60,8 @@ class ConversionCard extends StatelessWidget {
       case 'doc':
       case 'docx':
         return Icons.description_rounded;
+      case 'svg':
+        return Icons.draw_rounded;
       default:
         return Icons.insert_drive_file_rounded;
     }

@@ -106,6 +106,12 @@ class ConversionProvider extends ChangeNotifier {
           final pdfPath = await _conversionService.docToPdf(inputPaths.first);
           results = [pdfPath];
           break;
+
+        case ConversionType.svgToPng:
+          _setProgress(0.3);
+          final pngPath = await _conversionService.svgToPng(inputPaths.first);
+          results = [pngPath];
+          break;
       }
 
       _setProgress(0.9);
@@ -283,7 +289,17 @@ class ConversionProvider extends ChangeNotifier {
             final err = jsonDecode(resp.body);
             throw Exception(err['error'] ?? 'Erreur backend');
           }
-          break;      }
+          break;
+
+        case ConversionType.svgToPng:
+          _setProgress(0.3);
+          final pngBytes = await _conversionService.svgToPngBytes(firstBytes);
+          _outputBytes = [pngBytes];
+          _outputPaths = [
+            '${firstName.replaceAll(RegExp(r'\.svg$', caseSensitive: false), '')}.png'
+          ];
+          break;
+      }
 
       _setProgress(0.9);
 

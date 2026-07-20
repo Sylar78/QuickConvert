@@ -69,7 +69,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _SettingsTile(
               icon: Icons.bolt_rounded,
               title: 'Passer à Premium',
-              subtitle: '4,99€/mois — Conversions illimitées',
+              subtitle: '2,99€/mois — Conversions illimitées',
               color: AppColors.premium,
               onTap: () => Navigator.pushNamed(context, '/premium'),
             ),

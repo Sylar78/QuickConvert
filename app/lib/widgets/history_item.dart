@@ -27,6 +27,8 @@ class HistoryItem extends StatelessWidget {
         return AppColors.pngColor;
       case ConversionType.docToPdf:
         return AppColors.docColor;
+      case ConversionType.svgToPng:
+        return AppColors.svgColor;
     }
   }
 

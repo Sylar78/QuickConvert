@@ -40,6 +40,8 @@ class _ConversionScreenState extends State<ConversionScreen> {
         return AppColors.pngColor;
       case ConversionType.docToPdf:
         return AppColors.docColor;
+      case ConversionType.svgToPng:
+        return AppColors.svgColor;
     }
   }
 
@@ -66,6 +68,9 @@ class _ConversionScreenState extends State<ConversionScreen> {
         break;
       case ConversionType.docToPdf:
         allowedExtensions = ['doc', 'docx'];
+        break;
+      case ConversionType.svgToPng:
+        allowedExtensions = ['svg'];
         break;
     }
 

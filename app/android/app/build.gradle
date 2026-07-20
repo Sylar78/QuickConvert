@@ -22,7 +22,7 @@ if (keyPropertiesFile.exists()) {
 }
 
 android {
-    namespace "com.quickconvert.app"
+    namespace "fr.quickconvert.app"
     compileSdk 35
     ndkVersion "27.0.12077973"
 
@@ -49,9 +49,9 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.quickconvert.app"
+        applicationId "fr.quickconvert.app"
         minSdkVersion flutter.minSdkVersion
-        targetSdkVersion flutter.targetSdkVersion
+        targetSdkVersion 35
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
@@ -59,7 +59,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

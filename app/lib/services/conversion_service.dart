@@ -7,6 +7,7 @@ import 'package:pdf/pdf.dart' hide PdfDocument;
 import 'package:pdf/widgets.dart' as pw;
 import 'package:pdfx/pdfx.dart';
 import 'package:uuid/uuid.dart';
+import 'svg_to_png.dart' as svg_converter;
 
 class ConversionService {
   static final ConversionService _instance = ConversionService._internal();
@@ -162,6 +163,48 @@ class ConversionService {
 
     await File(outputPath).writeAsBytes(await pdf.save());
     return outputPath;
+  }
+
+  // ─── Méthodes Web (bytes in / bytes out, pas de dart:io) ─────────────────
+
+  /// SVG → PNG (fichier, mobile/desktop)
+  Future<String> svgToPng(String svgPath, {int width = 1024}) async {
+    final outDir = await _outputDir;
+    final basename = p.basenameWithoutExtension(svgPath);
+    final outputPath = p.join(outDir.path, '$basename.png');
+
+    final svgBytes = await File(svgPath).readAsBytes();
+    final pngBytes = await svgToPngBytes(svgBytes, width: width);
+    await File(outputPath).writeAsBytes(pngBytes);
+    return outputPath;
+  }
+
+  /// SVG → PNG (bytes, web + mobile)
+  Future<Uint8List> svgToPngBytes(Uint8List svgBytes, {int width = 1024}) async {
+    final svgString = String.fromCharCodes(svgBytes);
+
+    // Parse SVG dimensions from viewBox or width/height attributes
+    double svgWidth = width.toDouble();
+    double svgHeight = width.toDouble();
+
+    final viewBoxMatch = RegExp(r'viewBox="([^"]+)"').firstMatch(svgString);
+    if (viewBoxMatch != null) {
+      final parts = viewBoxMatch.group(1)!.trim().split(RegExp(r'[\s,]+'));
+      if (parts.length == 4) {
+        svgWidth = double.tryParse(parts[2]) ?? width.toDouble();
+        svgHeight = double.tryParse(parts[3]) ?? width.toDouble();
+      }
+    } else {
+      final wMatch = RegExp(r'width="([\d.]+)"').firstMatch(svgString);
+      final hMatch = RegExp(r'height="([\d.]+)"').firstMatch(svgString);
+      if (wMatch != null) svgWidth = double.tryParse(wMatch.group(1)!) ?? svgWidth;
+      if (hMatch != null) svgHeight = double.tryParse(hMatch.group(1)!) ?? svgHeight;
+    }
+
+    final scale = width / svgWidth;
+    final targetHeight = (svgHeight * scale).round();
+
+    return svg_converter.renderSvgToPng(svgString, width, targetHeight);
   }
 
   // ─── Méthodes Web (bytes in / bytes out, pas de dart:io) ─────────────────

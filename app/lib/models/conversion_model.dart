@@ -9,6 +9,7 @@ enum ConversionType {
   jpgToPng,
   docToPdf,
   pngToPdf,
+  svgToPng,
 }
 
 extension ConversionTypeExtension on ConversionType {
@@ -26,6 +27,8 @@ extension ConversionTypeExtension on ConversionType {
         return 'DOC → PDF';
       case ConversionType.pngToPdf:
         return 'PNG → PDF';
+      case ConversionType.svgToPng:
+        return 'SVG → PNG';
     }
   }
 
@@ -43,6 +46,8 @@ extension ConversionTypeExtension on ConversionType {
         return 'DOC';
       case ConversionType.pngToPdf:
         return 'PNG';
+      case ConversionType.svgToPng:
+        return 'SVG';
     }
   }
 
@@ -60,6 +65,8 @@ extension ConversionTypeExtension on ConversionType {
         return 'PDF';
       case ConversionType.pngToPdf:
         return 'PDF';
+      case ConversionType.svgToPng:
+        return 'PNG';
     }
   }
 
@@ -77,6 +84,8 @@ extension ConversionTypeExtension on ConversionType {
         return 'Transformer ton document en PDF';
       case ConversionType.pngToPdf:
         return 'Créer un PDF depuis tes images PNG';
+      case ConversionType.svgToPng:
+        return 'Convertir tes SVG en images PNG';
     }
   }
 }

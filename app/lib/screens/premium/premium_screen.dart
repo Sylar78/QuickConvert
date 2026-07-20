@@ -160,7 +160,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _isYearly ? '35,88€/an' : '4,99€/mois',
+                _isYearly ? '24,99€/an' : '4,99€/mois',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 28,

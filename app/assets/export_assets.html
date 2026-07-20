@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QuickConvert - Export Assets</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 40px; background: #f5f5f5; }
+        .section { margin: 30px 0; padding: 20px; background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        h1 { color: #667eea; }
+        h2 { color: #333; }
+        canvas { border: 1px solid #ddd; border-radius: 8px; display: block; margin: 10px 0; }
+        button { background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px; margin: 5px; }
+        button:hover { background: #5a67d8; }
+        .preview { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+    <h1>QuickConvert - Export des assets Play Store</h1>
+    
+    <div class="section">
+        <h2>1. Logo / Icône (512x512)</h2>
+        <div class="preview">
+            <canvas id="logoCanvas" width="512" height="512"></canvas>
+        </div>
+        <button onclick="downloadCanvas('logoCanvas', 'quickconvert_logo_512x512.png', 'png')">📥 Télécharger le Logo PNG (512x512)</button>
+        <button onclick="downloadCanvas('logoCanvas', 'quickconvert_logo_512x512.jpg', 'jpg')">📥 Télécharger le Logo JPG (512x512)</button>
+    </div>
+    
+    <div class="section">
+        <h2>2. Feature Graphic / Bannière (1024x500)</h2>
+        <div class="preview">
+            <canvas id="bannerCanvas" width="1024" height="500"></canvas>
+        </div>
+        <button onclick="downloadCanvas('bannerCanvas', 'quickconvert_feature_graphic_1024x500.png', 'png')">📥 Télécharger la Bannière PNG (1024x500)</button>
+        <button onclick="downloadCanvas('bannerCanvas', 'quickconvert_feature_graphic_1024x500.jpg', 'jpg')">📥 Télécharger la Bannière JPG (1024x500)</button>
+    </div>
+
+    <script>
+    function drawLogo() {
+        const canvas = document.getElementById('logoCanvas');
+        const ctx = canvas.getContext('2d');
+        const w = 512, h = 512;
+        
+        // Background gradient
+        const bgGrad = ctx.createLinearGradient(0, 0, w, h);
+        bgGrad.addColorStop(0, '#667eea');
+        bgGrad.addColorStop(1, '#764ba2');
+        
+        // Rounded rect background
+        roundRect(ctx, 16, 16, 480, 480, 96);
+        ctx.fillStyle = bgGrad;
+        ctx.fill();
+        
+        // Inner border
+        roundRect(ctx, 16, 16, 480, 480, 96);
+        ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        
+        // Left document
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.2)';
+        ctx.shadowBlur = 16;
+        ctx.shadowOffsetY = 4;
+        
+        roundRect(ctx, 110, 150, 120, 170, 12);
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.fill();
+        
+        // Document lines
+        ctx.fillStyle = 'rgba(102,126,234,0.6)';
+        roundRect(ctx, 126, 178, 60, 8, 4); ctx.fill();
+        ctx.fillStyle = 'rgba(102,126,234,0.4)';
+        roundRect(ctx, 126, 194, 88, 8, 4); ctx.fill();
+        roundRect(ctx, 126, 210, 72, 8, 4); ctx.fill();
+        
+        // Document preview area
+        ctx.fillStyle = 'rgba(102,126,234,0.12)';
+        roundRect(ctx, 126, 235, 88, 55, 6); ctx.fill();
+        
+        // Right document
+        roundRect(ctx, 282, 150, 120, 170, 12);
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.fill();
+        
+        // Document lines
+        ctx.fillStyle = 'rgba(118,75,162,0.6)';
+        roundRect(ctx, 298, 178, 60, 8, 4); ctx.fill();
+        ctx.fillStyle = 'rgba(118,75,162,0.4)';
+        roundRect(ctx, 298, 194, 88, 8, 4); ctx.fill();
+        roundRect(ctx, 298, 210, 72, 8, 4); ctx.fill();
+        
+        // Checkmark circle
+        ctx.beginPath();
+        ctx.arc(342, 268, 24, 0, Math.PI * 2);
+        ctx.fillStyle = '#4ade80';
+        ctx.fill();
+        
+        // Checkmark
+        ctx.beginPath();
+        ctx.moveTo(329, 268);
+        ctx.lineTo(338, 278);
+        ctx.lineTo(356, 258);
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 4;
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+        
+        ctx.restore();
+        
+        // Central arrows
+        ctx.save();
+        // Arrow right
+        ctx.beginPath();
+        ctx.moveTo(245, 225);
+        ctx.lineTo(275, 225);
+        ctx.lineTo(270, 212);
+        ctx.lineTo(295, 235);
+        ctx.lineTo(270, 258);
+        ctx.lineTo(275, 245);
+        ctx.lineTo(245, 245);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.fill();
+        
+        // Arrow left (below)
+        ctx.beginPath();
+        ctx.moveTo(295, 265);
+        ctx.lineTo(265, 265);
+        ctx.lineTo(270, 278);
+        ctx.lineTo(245, 255);
+        ctx.lineTo(270, 232);
+        ctx.lineTo(265, 245);
+        ctx.lineTo(295, 245);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(255,255,255,0.5)';
+        ctx.fill();
+        ctx.restore();
+        
+        // App name
+        ctx.font = 'bold 44px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.textAlign = 'center';
+        ctx.fillText('QuickConvert', 256, 395);
+        
+        // Subtitle
+        ctx.font = '18px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.7)';
+        ctx.fillText('Convertisseur de fichiers', 256, 425);
+    }
+    
+    function drawBanner() {
+        const canvas = document.getElementById('bannerCanvas');
+        const ctx = canvas.getContext('2d');
+        const w = 1024, h = 500;
+        
+        // Background gradient
+        const bgGrad = ctx.createLinearGradient(0, 0, w, h);
+        bgGrad.addColorStop(0, '#667eea');
+        bgGrad.addColorStop(0.5, '#764ba2');
+        bgGrad.addColorStop(1, '#f093fb');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, w, h);
+        
+        // Decorative circles
+        ctx.beginPath(); ctx.arc(900, 80, 120, 0, Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.05)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(950, 400, 80, 0, Math.PI*2); ctx.fill();
+        ctx.beginPath(); ctx.arc(100, 420, 100, 0, Math.PI*2); ctx.fillStyle='rgba(255,255,255,0.04)'; ctx.fill();
+        ctx.beginPath(); ctx.arc(50, 100, 60, 0, Math.PI*2); ctx.fill();
+        
+        // Mini app icon
+        roundRect(ctx, 80, 120, 70, 70, 16);
+        ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        
+        ctx.font = 'bold 30px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('QC', 115, 165);
+        
+        // App name
+        ctx.textAlign = 'left';
+        ctx.font = 'bold 52px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = 'white';
+        ctx.fillText('QuickConvert', 80, 260);
+        
+        // Tagline
+        ctx.font = '22px Arial, Helvetica, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        ctx.fillText('Convertissez vos fichiers en un instant', 80, 305);
+        
+        // Feature pills
+        const pills = ['📄 Documents', '🖼️ Images', '🎵 Audio', '🎬 Vidéo'];
+        let px = 80;
+        ctx.font = '14px Arial';
+        pills.forEach(text => {
+            const tw = ctx.measureText(text).width + 30;
+            roundRect(ctx, px, 340, tw, 36, 18);
+            ctx.fillStyle = 'rgba(255,255,255,0.15)';
+            ctx.fill();
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.fillText(text, px + tw/2, 364);
+            ctx.textAlign = 'left';
+            px += tw + 12;
+        });
+        
+        // Phone mockup
+        ctx.save();
+        ctx.translate(720, 250);
+        ctx.rotate(5 * Math.PI / 180);
+        ctx.translate(-720, -250);
+        
+        // Phone shadow
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 30;
+        ctx.shadowOffsetY = 10;
+        
+        // Phone body
+        roundRect(ctx, 620, 40, 260, 460, 30);
+        ctx.fillStyle = '#1a1a2e';
+        ctx.fill();
+        
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+        
+        // Phone screen
+        roundRect(ctx, 632, 55, 236, 430, 22);
+        ctx.fillStyle = '#f8f9ff';
+        ctx.fill();
+        
+        // App header
+        ctx.fillStyle = '#667eea';
+        ctx.fillRect(632, 55, 236, 60);
+        // Round top corners
+        roundRect(ctx, 632, 55, 236, 60, {tl:22, tr:22, bl:0, br:0});
+        ctx.fillStyle = '#667eea';
+        ctx.fill();
+        
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText('QuickConvert', 750, 92);
+        
+        // Cards in phone
+        const cardData = [
+            {icon: '📄', title: 'PDF → Word', sub: 'Convertir en 1 clic', color: '#667eea'},
+            {icon: '🖼️', title: 'PNG → JPG', sub: 'Rapide et simple', color: '#764ba2'},
+            {icon: '🎵', title: 'MP3 → WAV', sub: 'Haute qualité', color: '#f093fb'},
+        ];
+        
+        let cy = 130;
+        cardData.forEach(card => {
+            roundRect(ctx, 645, cy, 210, 65, 10);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+            
+            // Icon circle
+            ctx.beginPath();
+            ctx.arc(670, cy + 32, 16, 0, Math.PI*2);
+            ctx.fillStyle = card.color + '22';
+            ctx.fill();
+            ctx.font = '14px Arial';
+            ctx.fillStyle = card.color;
+            ctx.textAlign = 'center';
+            ctx.fillText(card.icon, 670, cy + 37);
+            
+            // Text
+            ctx.textAlign = 'left';
+            ctx.font = 'bold 13px Arial';
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillText(card.title, 695, cy + 28);
+            ctx.font = '11px Arial';
+            ctx.fillStyle = '#64748b';
+            ctx.fillText(card.sub, 695, cy + 46);
+            
+            cy += 75;
+        });
+        
+        ctx.restore();
+    }
+    
+    function roundRect(ctx, x, y, w, h, r) {
+        if (typeof r === 'number') {
+            r = {tl: r, tr: r, br: r, bl: r};
+        }
+        ctx.beginPath();
+        ctx.moveTo(x + r.tl, y);
+        ctx.lineTo(x + w - r.tr, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r.tr);
+        ctx.lineTo(x + w, y + h - r.br);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h);
+        ctx.lineTo(x + r.bl, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r.bl);
+        ctx.lineTo(x, y + r.tl);
+        ctx.quadraticCurveTo(x, y, x + r.tl, y);
+        ctx.closePath();
+    }
+    
+    function downloadCanvas(canvasId, filename, format) {
+        const canvas = document.getElementById(canvasId);
+        const link = document.createElement('a');
+        link.download = filename;
+        if (format === 'jpg') {
+            // Pour JPG, on doit d'abord dessiner un fond blanc (JPG n'a pas de transparence)
+            const tmpCanvas = document.createElement('canvas');
+            tmpCanvas.width = canvas.width;
+            tmpCanvas.height = canvas.height;
+            const tmpCtx = tmpCanvas.getContext('2d');
+            tmpCtx.fillStyle = '#ffffff';
+            tmpCtx.fillRect(0, 0, tmpCanvas.width, tmpCanvas.height);
+            tmpCtx.drawImage(canvas, 0, 0);
+            link.href = tmpCanvas.toDataURL('image/jpeg', 0.95);
+        } else {
+            link.href = canvas.toDataURL('image/png');
+        }
+        link.click();
+    }
+    
+    // Draw on load
+    window.onload = function() {
+        drawLogo();
+        drawBanner();
+    };
+    </script>
+</body>
+</html>

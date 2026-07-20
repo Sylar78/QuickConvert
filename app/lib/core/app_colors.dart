@@ -24,6 +24,7 @@ class AppColors {
   static const Color jpgColor = Color(0xFF4CAF50);      // Vert JPG
   static const Color pngColor = Color(0xFF2196F3);      // Bleu PNG
   static const Color docColor = Color(0xFF1565C0);      // Bleu foncé DOC
+  static const Color svgColor = Color(0xFFFF9800);      // Orange SVG
 
   // Status
   static const Color success = Color(0xFF4CAF50);
