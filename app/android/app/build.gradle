@@ -23,8 +23,8 @@ if (keyPropertiesFile.exists()) {
 
 android {
     namespace "com.quickconvert.app"
-    compileSdk flutter.compileSdkVersion
-    ndkVersion flutter.ndkVersion
+    compileSdk 35
+    ndkVersion "27.0.12077973"
 
     signingConfigs {
         release {
@@ -59,7 +59,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig signingConfigs.release
+            signingConfig signingConfigs.debug
             minifyEnabled true
             shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'

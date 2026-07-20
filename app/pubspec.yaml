@@ -13,14 +13,12 @@ dependencies:
 
   # State management
   provider: ^6.1.2
-  riverpod: ^2.5.1
-  flutter_riverpod: ^2.5.1
 
   # HTTP client
   http: ^1.2.0
 
-  # Supabase backend
-  supabase_flutter: ^2.5.6
+  # Supabase backend — désactivé temporairement (incompatible Flutter 3.24 Android build)
+  # supabase_flutter: ^2.5.6
 
   # File handling
   file_picker: ^8.0.6
