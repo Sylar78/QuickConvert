@@ -23,7 +23,7 @@ if (keyPropertiesFile.exists()) {
 
 android {
     namespace "fr.quickconvert.app"
-    compileSdk 35
+    compileSdk 36
     ndkVersion "27.0.12077973"
 
     signingConfigs {
@@ -51,7 +51,7 @@ android {
     defaultConfig {
         applicationId "fr.quickconvert.app"
         minSdkVersion flutter.minSdkVersion
-        targetSdkVersion 35
+        targetSdkVersion 36
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
         multiDexEnabled true
@@ -74,4 +74,6 @@ flutter {
 dependencies {
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
     implementation 'androidx.multidex:multidex:2.0.1'
+    // Force Google Play Billing Library 8+ (required by Play Console from Aug 2026)
+    implementation 'com.android.billingclient:billing:8.0.0'
 }
