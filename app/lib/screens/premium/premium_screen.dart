@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/core.dart';
 import '../../models/models.dart';
@@ -160,6 +161,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 textAlign: TextAlign.center,
               ),
             ),
+          const SizedBox(height: AppSpacing.md),
+          const _LegalLinks(),
         ];
     }
   }
@@ -256,6 +259,55 @@ class _PremiumScreenState extends State<PremiumScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+/// Conditions et confidentialité, sous l'offre d'abonnement.
+///
+/// L'App Store refuse un écran d'abonnement reconductible qui n'y mène pas
+/// (règle 3.1.2). Les deux pages sont servies par le site.
+class _LegalLinks extends StatelessWidget {
+  const _LegalLinks();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const _LegalLink(
+          label: "Conditions d'utilisation",
+          url: AppConstants.termsUrl,
+        ),
+        Text('·', style: context.texts.bodySmall),
+        const _LegalLink(
+          label: 'Confidentialité',
+          url: AppConstants.privacyUrl,
+        ),
+      ],
+    );
+  }
+}
+
+class _LegalLink extends StatelessWidget {
+  final String label;
+  final String url;
+
+  const _LegalLink({required this.label, required this.url});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      onPressed: () => launchUrl(
+        Uri.parse(url),
+        mode: LaunchMode.externalApplication,
+      ),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ),
+      child: Text(label, style: context.texts.bodySmall),
+    );
   }
 }
 

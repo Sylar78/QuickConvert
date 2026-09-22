@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Modèle pour un export manuel depuis un Mac.
+
+  La publication automatique (.github/workflows/publication-testflight.yml)
+  n'utilise PAS ce fichier : elle écrit le sien à partir des secrets, parce
+  qu'un Team ID n'a pas sa place dans le dépôt et qu'un modèle aux valeurs
+  d'exemple produirait une archive mal signée sans le signaler.
+-->
 <plist version="1.0">
 <dict>
 	<!-- Remplacer par votre Team ID Apple Developer (ex: ABCDE12345) -->
@@ -10,10 +18,10 @@
 	<key>method</key>
 	<string>app-store-connect</string>
 
-	<!-- Remplacer par votre Bundle ID -->
+	<!-- Doit correspondre à PRODUCT_BUNDLE_IDENTIFIER dans le projet Xcode -->
 	<key>provisioningProfiles</key>
 	<dict>
-		<key>com.votrecompany.quickconvert</key>
+		<key>com.quickconvert.quickConvert</key>
 		<string>QuickConvert App Store Distribution</string>
 	</dict>
 

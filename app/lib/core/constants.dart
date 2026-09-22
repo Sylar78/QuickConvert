@@ -71,6 +71,14 @@ class AppConstants {
   static const String appStoreSubscriptionsUrl =
       'https://apps.apple.com/account/subscriptions';
 
+  /// Pages légales, servies par le même déploiement que le site.
+  ///
+  /// L'App Store exige qu'un écran d'abonnement reconductible mène aux
+  /// conditions d'utilisation et à la politique de confidentialité
+  /// (règle 3.1.2) : sans ces liens, la soumission est refusée.
+  static const String privacyUrl = '$siteUrl/privacy';
+  static const String termsUrl = '$siteUrl/terms';
+
   // Free tier limits
   static const int freeConversionsPerDay = 5;
 

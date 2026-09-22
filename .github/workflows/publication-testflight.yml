@@ -1,0 +1,205 @@
+name: Publier sur TestFlight
+
+# Construit l'app iOS signée et la dépose sur TestFlight. Rien ne part si
+# l'analyse ou les tests échouent.
+#
+# Deux façons de déclencher :
+#   - poser une étiquette `ios-v1.0.2` sur un commit ;
+#   - « Run workflow » depuis l'onglet Actions.
+#
+# Depuis TestFlight, c'est toi qui soumets à la validation d'Apple dans
+# App Store Connect : ce workflow ne publie jamais sur l'App Store tout seul.
+#
+# Les huit secrets attendus sont décrits dans docs/publication-ios.md.
+
+on:
+  push:
+    tags:
+      - 'ios-v*'
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: Numéro de build (vide = celui de pubspec.yaml)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publication-testflight
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: 3.24.5
+  # Doit correspondre exactement à l'identifiant enregistré dans le portail
+  # Apple Developer et dans App Store Connect. Il ne pourra plus changer une
+  # fois l'app soumise.
+  BUNDLE_ID: com.quickconvert.quickConvert
+  IPA_DIR: app/build/ios/ipa
+
+jobs:
+  publier:
+    # Archiver une app iOS exige Xcode, donc un runner macOS. Sur un dépôt
+    # privé, ces minutes comptent dix fois plus que celles de Linux.
+    runs-on: macos-14
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vérifier que les secrets sont en place
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CERT: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+          PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          PROFILE_NAME: ${{ secrets.IOS_PROVISIONING_PROFILE_NAME }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+        run: |
+          manquants=""
+          [ -n "$TEAM_ID" ]       || manquants="$manquants APPLE_TEAM_ID"
+          [ -n "$CERT" ]          || manquants="$manquants IOS_DIST_CERT_P12_BASE64"
+          [ -n "$CERT_PASSWORD" ] || manquants="$manquants IOS_DIST_CERT_PASSWORD"
+          [ -n "$PROFILE" ]       || manquants="$manquants IOS_PROVISIONING_PROFILE_BASE64"
+          [ -n "$PROFILE_NAME" ]  || manquants="$manquants IOS_PROVISIONING_PROFILE_NAME"
+          [ -n "$KEY_ID" ]        || manquants="$manquants APP_STORE_CONNECT_KEY_ID"
+          [ -n "$ISSUER_ID" ]     || manquants="$manquants APP_STORE_CONNECT_ISSUER_ID"
+          [ -n "$PRIVATE_KEY" ]   || manquants="$manquants APP_STORE_CONNECT_PRIVATE_KEY"
+          if [ -n "$manquants" ]; then
+            echo "::error::Secrets absents :$manquants — voir docs/publication-ios.md"
+            exit 1
+          fi
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installer les dépendances
+        working-directory: app
+        run: flutter pub get
+
+      # `--no-fatal-infos` : le dépôt porte une info connue et acceptée sur
+      # `svg_to_png_web.dart`. Avertissements et erreurs restent bloquants.
+      - name: Analyser
+        working-directory: app
+        run: flutter analyze --no-fatal-infos
+
+      - name: Tester l'app
+        working-directory: app
+        run: flutter test
+
+      - name: Tester les fonctions de paiement
+        run: node --test tests/*.test.js
+
+      - name: Importer le certificat de distribution
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.IOS_DIST_CERT_P12_BASE64 }}
+          p12-password: ${{ secrets.IOS_DIST_CERT_PASSWORD }}
+
+      - name: Installer le profil de provisionnement
+        env:
+          PROFILE: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          dossier="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$dossier"
+          echo "$PROFILE" | base64 --decode > "$dossier/build.mobileprovision"
+
+      # Le projet Xcode est en signature automatique, ce qui ne marche pas sur
+      # un runner sans session Apple. On bascule la configuration Release en
+      # manuel par le xcconfig, que Flutter lit à l'archivage : c'est moins
+      # invasif que de modifier le .pbxproj.
+      - name: Basculer la signature en manuel
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          PROFILE_NAME: ${{ secrets.IOS_PROVISIONING_PROFILE_NAME }}
+        run: |
+          {
+            echo ""
+            echo "CODE_SIGN_STYLE=Manual"
+            echo "DEVELOPMENT_TEAM=$TEAM_ID"
+            echo "PROVISIONING_PROFILE_SPECIFIER=$PROFILE_NAME"
+            echo "CODE_SIGN_IDENTITY=Apple Distribution"
+          } >> app/ios/Flutter/Release.xcconfig
+
+      - name: Préparer les options d'export
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          PROFILE_NAME: ${{ secrets.IOS_PROVISIONING_PROFILE_NAME }}
+        run: |
+          # Écrit ici plutôt que lu depuis le dépôt : le fichier versionné ne
+          # peut pas contenir le Team ID, et un modèle avec des valeurs
+          # d'exemple produirait une archive mal signée sans le dire.
+          cat > /tmp/ExportOptions.plist <<PLIST
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>teamID</key>
+            <string>$TEAM_ID</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>signingCertificate</key>
+            <string>Apple Distribution</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>${{ env.BUNDLE_ID }}</key>
+              <string>$PROFILE_NAME</string>
+            </dict>
+            <key>stripSwiftSymbols</key>
+            <true/>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>destination</key>
+            <string>export</string>
+          </dict>
+          </plist>
+          PLIST
+
+      - name: Construire l'archive signée
+        working-directory: app
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          if [ -n "$BUILD_NUMBER" ]; then
+            flutter build ipa --release \
+              --build-number="$BUILD_NUMBER" \
+              --export-options-plist=/tmp/ExportOptions.plist
+          else
+            flutter build ipa --release \
+              --export-options-plist=/tmp/ExportOptions.plist
+          fi
+
+      # Gardé quoi qu'il arrive : si le dépôt sur TestFlight échoue, l'archive
+      # reste téléchargeable et déposable à la main avec Transporter.
+      - name: Conserver l'archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: quickconvert-ipa
+          path: ${{ env.IPA_DIR }}/*.ipa
+          retention-days: 30
+
+      - name: Déposer sur TestFlight
+        uses: apple-actions/upload-testflight-build@v3
+        with:
+          app-path: ${{ env.IPA_DIR }}
+          issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          api-private-key: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+
+      - name: Effacer les éléments de signature
+        if: always()
+        run: |
+          rm -f "$HOME/Library/MobileDevice/Provisioning Profiles/build.mobileprovision" \
+                /tmp/ExportOptions.plist

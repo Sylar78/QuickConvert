@@ -24,6 +24,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>MinimumOSVersion</key>
 	<string>13.0</string>
 
@@ -56,8 +58,6 @@
 	<string>QuickConvert peut utiliser l'appareil photo pour scanner des documents.</string>
 	<key>NSDocumentsFolderUsageDescription</key>
 	<string>QuickConvert a besoin d'accéder à tes documents pour les convertir.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>QuickConvert n'utilise pas le microphone.</string>
 
 	<!-- Accès fichiers partagés -->
 	<key>UIFileSharingEnabled</key>
@@ -246,13 +246,6 @@
 				<key>NSIncludesSubdomains</key>
 				<true/>
 			</dict>
-			<key>buuwdmnmjmbaipvxmmoo.supabase.co</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<false/>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-			</dict>
 		</dict>
 	</dict>
 
@@ -267,13 +260,6 @@
 				<string>quickconvert</string>
 			</array>
 		</dict>
-	</array>
-
-	<!-- Capacités réseau -->
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>fetch</string>
-		<string>remote-notification</string>
 	</array>
 </dict>
 </plist>
