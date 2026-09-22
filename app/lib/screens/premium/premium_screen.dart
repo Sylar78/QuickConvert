@@ -1,9 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../../core/core.dart';
 import '../../models/models.dart';
 import '../../providers/providers.dart';
+import '../../services/services.dart';
 import '../../widgets/widgets.dart';
 
 class PremiumScreen extends StatefulWidget {
@@ -15,11 +19,42 @@ class PremiumScreen extends StatefulWidget {
 
 class _PremiumScreenState extends State<PremiumScreen> {
   bool _isYearly = true;
+  SubscriptionProvider? _subscriptions;
+
+  @override
+  void initState() {
+    super.initState();
+    // Le sort d'un achat n'arrive pas au retour de `buy()` mais par le flux du
+    // store, parfois bien plus tard (un paiement différé peut mettre des
+    // jours). L'écran écoute donc le provider au lieu d'attendre une valeur de
+    // retour.
+    _subscriptions = context.read<SubscriptionProvider>()
+      ..addListener(_onStoreEvent);
+  }
+
+  @override
+  void dispose() {
+    _subscriptions?.removeListener(_onStoreEvent);
+    super.dispose();
+  }
+
+  void _onStoreEvent() {
+    final subscriptions = _subscriptions;
+    final message = subscriptions?.message;
+    if (subscriptions == null || message == null) return;
+    subscriptions.consumeMessage();
+
+    // Une notification du provider peut tomber pendant une phase de build, où
+    // ouvrir un SnackBar lève une exception. On attend la fin de la frame.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _notify(message));
+  }
 
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
-    if (user.isPremium) return const _AlreadyPremium();
+    if (user.isPremium) {
+      return _AlreadyPremium(entitlement: EntitlementService().read());
+    }
 
     final subscriptions = context.watch<SubscriptionProvider>();
 
@@ -48,22 +83,7 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 for (final feature in SubscriptionModel.monthly.features)
                   _FeatureRow(feature),
                 const SizedBox(height: AppSpacing.xxl),
-                _buildPurchaseButton(subscriptions),
-                const SizedBox(height: AppSpacing.sm),
-                Center(
-                  child: TextButton(
-                    onPressed: _restorePurchases,
-                    child: const Text('Restaurer mes achats'),
-                  ),
-                ),
-                Center(
-                  child: Text(
-                    'Renouvellement automatique, annulable à tout moment '
-                    'depuis ton compte du store.',
-                    style: context.texts.bodySmall,
-                    textAlign: TextAlign.center,
-                  ),
-                ),
+                ..._buildCallToAction(subscriptions),
               ],
             ),
           ),
@@ -81,74 +101,193 @@ class _PremiumScreenState extends State<PremiumScreen> {
   String _yearlyPrice(SubscriptionProvider provider) =>
       provider.yearlyProduct?.price ?? AppConstants.fallbackYearlyPrice;
 
+  /// Ce que l'utilisateur peut faire dépend de l'état du store, pas seulement
+  /// de son envie d'acheter. Avant, le bouton était toujours là et n'aboutissait
+  /// nulle part sur le web.
+  List<Widget> _buildCallToAction(SubscriptionProvider subscriptions) {
+    switch (subscriptions.availability) {
+      case StoreAvailability.checking:
+        return [
+          const _PendingButton(label: 'Connexion au store…'),
+        ];
+
+      case StoreAvailability.unsupported:
+        return [
+          const _StoreNotice(
+            icon: Icons.phone_iphone_rounded,
+            title: 'L\'abonnement se souscrit depuis l\'app mobile',
+            body: 'Le paiement passe par Google Play, qui n\'existe pas sur le '
+                'web. Installe QuickConvert sur ton téléphone pour t\'abonner. '
+                'Ici, les conversions gratuites restent disponibles.',
+          ),
+          ..._debugActivation(),
+        ];
+
+      case StoreAvailability.unavailable:
+        return [
+          const _StoreNotice(
+            icon: Icons.cloud_off_rounded,
+            title: 'Le store ne répond pas',
+            body: 'Vérifie ta connexion et que l\'app a bien été installée '
+                'depuis le Play Store, puis réessaie.',
+          ),
+          const SizedBox(height: AppSpacing.md),
+          OutlinedButton(
+            onPressed: subscriptions.isBusy ? null : _retry,
+            child: const Text('Réessayer'),
+          ),
+          ..._debugActivation(),
+        ];
+
+      case StoreAvailability.ready:
+        return [
+          _buildPurchaseButton(subscriptions),
+          const SizedBox(height: AppSpacing.sm),
+          Center(
+            child: TextButton(
+              onPressed: subscriptions.isBusy ? null : _restorePurchases,
+              child: const Text('Restaurer mes achats'),
+            ),
+          ),
+          Center(
+            child: Text(
+              'Renouvellement automatique, annulable à tout moment '
+              'depuis ton compte du store.',
+              style: context.texts.bodySmall,
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ];
+    }
+  }
+
+  /// Raccourci de développement : permet de tester l'app en Premium sans
+  /// store. `kDebugMode` est résolu à la compilation, donc ce bouton n'existe
+  /// pas dans un build de production — sans quoi il offrirait l'abonnement à
+  /// quiconque ouvre la version web.
+  List<Widget> _debugActivation() {
+    if (!kDebugMode) return const [];
+    return [
+      const SizedBox(height: AppSpacing.md),
+      TextButton(
+        onPressed: () => context
+            .read<AuthProvider>()
+            .activateDebugPremium(const Duration(days: 30)),
+        child: const Text('Activer le Premium (développement)'),
+      ),
+    ];
+  }
+
   Widget _buildPurchaseButton(SubscriptionProvider subscriptions) {
-    final isLoading = subscriptions.status == SubscriptionStatus.loading;
+    if (subscriptions.flow == PurchaseFlowStatus.pending) {
+      return const _PendingButton(label: 'Validation par le store…');
+    }
+    if (subscriptions.flow == PurchaseFlowStatus.loadingProducts) {
+      return const _PendingButton(label: 'Chargement des offres…');
+    }
+
+    final product = _selectedProduct(subscriptions);
 
     return ElevatedButton(
-      onPressed: isLoading ? null : _purchase,
-      child: isLoading
-          ? SizedBox(
-              width: 22,
-              height: 22,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.5,
-                color: context.colors.onPrimary,
-              ),
-            )
-          : Text(_isYearly ? 'Prendre l\'abonnement annuel' : 'Prendre l\'abonnement mensuel'),
+      // Sans offre chargée il n'y a rien à acheter : mieux vaut un bouton
+      // éteint qu'un bouton qui échoue.
+      onPressed: product == null ? null : () => _purchase(product),
+      child: Text(_isYearly
+          ? 'Prendre l\'abonnement annuel'
+          : 'Prendre l\'abonnement mensuel'),
     );
   }
 
-  Future<void> _purchase() async {
-    final auth = context.read<AuthProvider>();
-    final subscriptions = context.read<SubscriptionProvider>();
+  ProductDetails? _selectedProduct(SubscriptionProvider subscriptions) =>
+      _isYearly ? subscriptions.yearlyProduct : subscriptions.monthlyProduct;
 
-    if (!subscriptions.isAvailable) {
-      // En débogage, on active Premium sans passer par le store pour pouvoir
-      // tester l'app. En production ce raccourci offrirait l'abonnement à
-      // quiconque ouvre la version web, où le store n'existe pas.
-      if (kDebugMode) {
-        auth.activatePremium(DateTime.now().add(
-          _isYearly ? const Duration(days: 365) : const Duration(days: 30),
-        ));
-        _notify('Premium activé (mode développement)');
-      } else {
-        _notify('Les abonnements ne sont pas disponibles sur cette plateforme.');
-      }
-      return;
-    }
+  Future<void> _purchase(ProductDetails product) =>
+      context.read<SubscriptionProvider>().buy(product);
 
-    void onSuccess(DateTime expiresAt) {
-      auth.activatePremium(expiresAt);
-      _notify('Bienvenue dans QuickConvert Premium.');
-    }
+  Future<void> _retry() => context.read<SubscriptionProvider>().retry();
 
-    if (_isYearly) {
-      await subscriptions.purchaseYearly(onSuccess);
-    } else {
-      await subscriptions.purchaseMonthly(onSuccess);
-    }
-
-    if (subscriptions.status == SubscriptionStatus.error) {
-      _notify(subscriptions.error ?? 'L\'achat n\'a pas abouti.');
-    }
-  }
-
-  Future<void> _restorePurchases() async {
-    final subscriptions = context.read<SubscriptionProvider>();
-    if (!subscriptions.isAvailable) {
-      _notify('Aucun store disponible sur cette plateforme.');
-      return;
-    }
-    await subscriptions.restorePurchases();
-    _notify('Restauration en cours…');
-  }
+  Future<void> _restorePurchases() =>
+      context.read<SubscriptionProvider>().restorePurchases();
 
   void _notify(String message) {
     if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+/// Bouton plein, désactivé, avec un indicateur : montre qu'on attend le store
+/// sans laisser l'utilisateur relancer un paiement en double.
+class _PendingButton extends StatelessWidget {
+  final String label;
+  const _PendingButton({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return ElevatedButton(
+      onPressed: null,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 18,
+            height: 18,
+            child: CircularProgressIndicator(
+              strokeWidth: 2.5,
+              color: context.colors.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+        ],
+      ),
+    );
+  }
+}
+
+/// Explique pourquoi l'achat n'est pas possible ici, au lieu d'un bouton mort.
+class _StoreNotice extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String body;
+
+  const _StoreNotice({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: palette.sunken,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: palette.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 22, color: palette.textMuted),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: context.texts.titleMedium),
+                const SizedBox(height: AppSpacing.xs),
+                Text(body, style: context.texts.bodySmall),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -342,33 +481,65 @@ class _FeatureRow extends StatelessWidget {
 }
 
 class _AlreadyPremium extends StatelessWidget {
-  const _AlreadyPremium();
+  final Entitlement entitlement;
+
+  const _AlreadyPremium({required this.entitlement});
 
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
+    final fromStore = entitlement.source == EntitlementSource.playStore ||
+        entitlement.source == EntitlementSource.appStore;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Premium')),
       body: Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.xxxl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.verified_rounded, color: palette.premium, size: 64),
-              const SizedBox(height: AppSpacing.xl),
-              Text('Tu es Premium', style: context.texts.headlineMedium),
-              const SizedBox(height: AppSpacing.sm),
-              Text(
-                'Conversions illimitées, sans publicité.',
-                style: context.texts.bodyMedium,
-                textAlign: TextAlign.center,
-              ),
-            ],
+          child: ContentColumn(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.verified_rounded, color: palette.premium, size: 64),
+                const SizedBox(height: AppSpacing.xl),
+                Text('Tu es Premium', style: context.texts.headlineMedium),
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  'Conversions illimitées, sans publicité.',
+                  style: context.texts.bodyMedium,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Text(entitlement.planLabel, style: context.texts.titleMedium),
+                if (entitlement.source == EntitlementSource.debug) ...[
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    'Activation de développement',
+                    style: context.texts.bodySmall,
+                  ),
+                ],
+                if (fromStore) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  // Le Play Store impose que l'app mène à la page où l'on
+                  // résilie. Ne pas l'avoir est un motif de rejet.
+                  OutlinedButton.icon(
+                    onPressed: _openStoreSubscriptions,
+                    icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                    label: const Text('Gérer ou résilier mon abonnement'),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _openStoreSubscriptions() async {
+    final url = entitlement.source == EntitlementSource.appStore
+        ? AppConstants.appStoreSubscriptionsUrl
+        : AppConstants.playSubscriptionsUrl;
+    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
   }
 }

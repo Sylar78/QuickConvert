@@ -46,6 +46,21 @@ class AppConstants {
   static const String fallbackMonthlyPrice = '4,99 €';
   static const String fallbackYearlyPrice = '24,99 €';
 
+  /// Temps laissé au store pour livrer ses achats restaurés avant de conclure
+  /// qu'il n'en a pas. Voir `SubscriptionProvider._runRestore` : trop court, on
+  /// couperait le Premium d'un abonné ; trop long, la restauration manuelle
+  /// paraît figée.
+  static const Duration restoreSettleDelay = Duration(seconds: 6);
+
+  /// Page de gestion des abonnements de Google Play. Le Play Store exige que
+  /// l'app y donne accès depuis l'écran de l'abonnement.
+  static const String playSubscriptionsUrl =
+      'https://play.google.com/store/account/subscriptions';
+
+  /// Équivalent côté Apple.
+  static const String appStoreSubscriptionsUrl =
+      'https://apps.apple.com/account/subscriptions';
+
   // Free tier limits
   static const int freeConversionsPerDay = 5;
 

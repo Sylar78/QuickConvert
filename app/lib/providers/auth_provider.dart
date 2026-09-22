@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart'; // AUTH DÉSACTIVÉE
 
+import '../core/constants.dart';
 import '../models/models.dart';
 import '../services/services.dart';
 
@@ -9,6 +10,7 @@ enum AuthState { unknown, authenticated, unauthenticated }
 class AuthProvider extends ChangeNotifier {
   // final SupabaseService _supabase = SupabaseService(); // AUTH DÉSACTIVÉE
   final HistoryService _historyService = HistoryService();
+  final EntitlementService _entitlements = EntitlementService();
 
   AuthState _authState = AuthState.unknown;
   UserModel _user = UserModel.guest();
@@ -27,6 +29,7 @@ class AuthProvider extends ChangeNotifier {
     // Auth temporairement désactivée — l'utilisateur démarre en mode invité.
     _authState = AuthState.unauthenticated;
     _user = UserModel.guest();
+    syncEntitlement();
     refreshQuota();
 
     // TODO: réactiver quand Supabase est correctement configuré,
@@ -69,9 +72,41 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void activatePremium(DateTime expiresAt) {
-    _user = _user.copyWith(isPremium: true, premiumExpiresAt: expiresAt);
+  /// Relit l'abonnement persisté et l'applique à l'utilisateur courant.
+  ///
+  /// C'est le seul chemin par lequel `isPremium` change. `SubscriptionProvider`
+  /// l'appelle dès que le store accorde ou retire un abonnement, et `_init`
+  /// au lancement — sans quoi un achat payé la veille serait oublié au
+  /// redémarrage de l'app.
+  void syncEntitlement() {
+    final entitlement = _entitlements.read();
+    if (entitlement.isActive == _user.isPremium &&
+        entitlement.expiresAt == _user.premiumExpiresAt) {
+      return;
+    }
+
+    // Construit explicitement plutôt que par `copyWith` : il faut pouvoir
+    // remettre `premiumExpiresAt` à null quand l'abonnement est retiré.
+    _user = UserModel(
+      id: _user.id,
+      email: _user.email,
+      isPremium: entitlement.isActive,
+      conversionsToday: _user.conversionsToday,
+      premiumExpiresAt: entitlement.expiresAt,
+      createdAt: _user.createdAt,
+    );
     notifyListeners();
+  }
+
+  /// Active le Premium sans passer par un store. Réservé au mode débogage :
+  /// `PremiumScreen` ne l'appelle que sous `kDebugMode`.
+  Future<void> activateDebugPremium(Duration duration) async {
+    await _entitlements.grant(
+      productId: AppConstants.premiumMonthlyId,
+      source: EntitlementSource.debug,
+      expiresAt: DateTime.now().add(duration),
+    );
+    syncEntitlement();
   }
 
   void clearError() {

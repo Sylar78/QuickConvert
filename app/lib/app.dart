@@ -14,11 +14,19 @@ class QuickConvertApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ConversionProvider()),
-        ChangeNotifierProvider(create: (_) {
-          final sub = SubscriptionProvider();
-          sub.initialize();
-          return sub;
-        }),
+        // L'abonnement accordé par le store est écrit par `SubscriptionProvider`
+        // puis relu par `AuthProvider` : c'est ce branchement qui manquait, et
+        // sans lui un achat réel ne donnait jamais le Premium.
+        // `lazy: false` : la connexion au store doit avoir lieu au lancement,
+        // pas à l'ouverture de l'écran Premium. C'est elle qui récupère un
+        // paiement différé validé pendant que l'app était fermée, et qui
+        // vérifie que l'abonnement gardé en local est toujours actif.
+        ChangeNotifierProvider(
+          lazy: false,
+          create: (context) => SubscriptionProvider(
+            onEntitlementChanged: context.read<AuthProvider>().syncEntitlement,
+          )..initialize(),
+        ),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) => MaterialApp(
