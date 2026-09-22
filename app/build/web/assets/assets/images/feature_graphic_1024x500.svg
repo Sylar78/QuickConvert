@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 500" width="1024" height="500">
+  <defs>
+    <linearGradient id="bannerBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#764ba2;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f093fb;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:0.2" />
+      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:0.05" />
+    </linearGradient>
+    <filter id="bannerShadow">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="20" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1024" height="500" fill="url(#bannerBg)"/>
+  
+  <!-- Decorative circles -->
+  <circle cx="900" cy="80" r="120" fill="white" opacity="0.05"/>
+  <circle cx="950" cy="400" r="80" fill="white" opacity="0.05"/>
+  <circle cx="100" cy="420" r="100" fill="white" opacity="0.04"/>
+  <circle cx="50" cy="100" r="60" fill="white" opacity="0.04"/>
+  
+  <!-- Decorative dots pattern -->
+  <g opacity="0.1" fill="white">
+    <circle cx="800" cy="150" r="3"/>
+    <circle cx="830" cy="150" r="3"/>
+    <circle cx="860" cy="150" r="3"/>
+    <circle cx="800" cy="180" r="3"/>
+    <circle cx="830" cy="180" r="3"/>
+    <circle cx="860" cy="180" r="3"/>
+    <circle cx="800" cy="210" r="3"/>
+    <circle cx="830" cy="210" r="3"/>
+    <circle cx="860" cy="210" r="3"/>
+  </g>
+  
+  <!-- Left side: App info -->
+  <g>
+    <!-- App icon mini -->
+    <rect x="80" y="140" width="80" height="80" rx="18" fill="white" opacity="0.15" stroke="white" stroke-opacity="0.3" stroke-width="1"/>
+    <text x="120" y="192" font-family="Arial, Helvetica, sans-serif" font-size="36" font-weight="bold" fill="white" text-anchor="middle">QC</text>
+    
+    <!-- App name -->
+    <text x="80" y="275" font-family="Arial, Helvetica, sans-serif" font-size="52" font-weight="bold" fill="white">QuickConvert</text>
+    
+    <!-- Tagline -->
+    <text x="80" y="320" font-family="Arial, Helvetica, sans-serif" font-size="22" fill="white" opacity="0.85">Convertissez vos fichiers en un instant</text>
+    
+    <!-- Feature pills -->
+    <rect x="80" y="350" width="110" height="36" rx="18" fill="white" opacity="0.15"/>
+    <text x="135" y="374" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="white" text-anchor="middle">📄 Documents</text>
+    
+    <rect x="200" y="350" width="95" height="36" rx="18" fill="white" opacity="0.15"/>
+    <text x="247" y="374" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="white" text-anchor="middle">🖼️ Images</text>
+    
+    <rect x="305" y="350" width="85" height="36" rx="18" fill="white" opacity="0.15"/>
+    <text x="347" y="374" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="white" text-anchor="middle">🎵 Audio</text>
+    
+    <rect x="400" y="350" width="85" height="36" rx="18" fill="white" opacity="0.15"/>
+    <text x="442" y="374" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="white" text-anchor="middle">🎬 Vidéo</text>
+  </g>
+  
+  <!-- Right side: Phone mockup with app screen -->
+  <g filter="url(#bannerShadow)">
+    <!-- Phone frame -->
+    <rect x="620" y="60" width="280" height="500" rx="32" fill="#1a1a2e" transform="rotate(5, 760, 310)"/>
+    <rect x="630" y="72" width="260" height="476" rx="26" fill="#f8f9ff" transform="rotate(5, 760, 310)"/>
+    
+    <!-- Screen content (simplified app UI) -->
+    <g transform="rotate(5, 760, 310)">
+      <!-- Status bar -->
+      <rect x="630" y="72" width="260" height="40" rx="26" fill="#667eea"/>
+      
+      <!-- App header -->
+      <rect x="630" y="100" width="260" height="50" fill="#667eea"/>
+      <text x="760" y="132" font-family="Arial, Helvetica, sans-serif" font-size="16" font-weight="bold" fill="white" text-anchor="middle">QuickConvert</text>
+      
+      <!-- Conversion cards -->
+      <rect x="650" y="165" width="220" height="60" rx="10" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+      <circle cx="680" cy="195" r="16" fill="#667eea" opacity="0.15"/>
+      <text x="680" y="200" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#667eea" text-anchor="middle">📄</text>
+      <text x="710" y="190" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="bold" fill="#1a1a2e">PDF → Word</text>
+      <text x="710" y="208" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#64748b">Convertir en 1 clic</text>
+      
+      <rect x="650" y="235" width="220" height="60" rx="10" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+      <circle cx="680" cy="265" r="16" fill="#764ba2" opacity="0.15"/>
+      <text x="680" y="270" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#764ba2" text-anchor="middle">🖼️</text>
+      <text x="710" y="260" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="bold" fill="#1a1a2e">PNG → JPG</text>
+      <text x="710" y="278" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#64748b">Rapide et simple</text>
+      
+      <rect x="650" y="305" width="220" height="60" rx="10" fill="white" stroke="#e2e8f0" stroke-width="1"/>
+      <circle cx="680" cy="335" r="16" fill="#f093fb" opacity="0.15"/>
+      <text x="680" y="340" font-family="Arial, Helvetica, sans-serif" font-size="14" fill="#f093fb" text-anchor="middle">🎵</text>
+      <text x="710" y="330" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="bold" fill="#1a1a2e">MP3 → WAV</text>
+      <text x="710" y="348" font-family="Arial, Helvetica, sans-serif" font-size="10" fill="#64748b">Haute qualité</text>
+    </g>
+  </g>
+  
+  <!-- Bottom accent line -->
+  <rect x="0" y="490" width="1024" height="10" fill="white" opacity="0.1"/>
+</svg>

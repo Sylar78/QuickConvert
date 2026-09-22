@@ -25,7 +25,14 @@ app/.flutter-plugins-dependencies
 app/.packages
 app/.pub-cache/
 app/.pub/
-app/build/
+# Le build web est versionné : vercel.json ne déclare aucun buildCommand,
+# Vercel sert donc directement app/build/web. Cette exception existait déjà
+# dans app/.gitignore, mais elle ne pouvait rien faire tant que ce fichier-ci
+# excluait tout app/build/ — git ne réintègre jamais un fichier dont un
+# dossier parent est exclu.
+app/build/*
+!app/build/web/
+!app/build/web/**
 app/.dart_tool/flutter_build/
 
 # pubspec.lock (garder pour la reproductibilité)
@@ -109,3 +116,6 @@ Desktop.ini
 coverage/
 .vercel
 .env*
+
+# Identifiant de build local, sans intérêt pour le déploiement.
+app/build/web/.last_build_id
