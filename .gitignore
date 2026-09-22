@@ -117,5 +117,3 @@ coverage/
 .vercel
 .env*
 
-# Identifiant de build local, sans intérêt pour le déploiement.
-app/build/web/.last_build_id
