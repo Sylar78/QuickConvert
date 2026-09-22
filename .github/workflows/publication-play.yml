@@ -1,0 +1,177 @@
+name: Publier sur Google Play
+
+# Construit l'app Android signée et la dépose sur une piste de la Play
+# Console. Rien ne part sans que les tests passent.
+#
+# Deux façons de déclencher :
+#   - poser une étiquette `v1.0.2` sur un commit → piste de test interne ;
+#   - « Run workflow » depuis l'onglet Actions → piste au choix.
+#
+# Les cinq secrets attendus sont décrits dans docs/publication-android.md.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      track:
+        description: Piste visée sur la Play Console
+        type: choice
+        default: internal
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+      build_number:
+        description: versionCode à utiliser (vide = celui de pubspec.yaml)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+
+# Deux publications simultanées se marcheraient dessus côté Play.
+concurrency:
+  group: publication-play
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: 3.24.5
+  PACKAGE_NAME: fr.quickconvert.app
+  AAB_PATH: app/build/app/outputs/bundle/release/app-release.aab
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Sans ça, l'échec arriverait quinze minutes plus tard, au moment de
+      # signer, avec un message de Gradle incompréhensible.
+      - name: Vérifier que les secrets sont en place
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          PLAY_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+        run: |
+          manquants=""
+          [ -n "$KEYSTORE" ]       || manquants="$manquants ANDROID_KEYSTORE_BASE64"
+          [ -n "$STORE_PASSWORD" ] || manquants="$manquants ANDROID_KEYSTORE_PASSWORD"
+          [ -n "$KEY_ALIAS" ]      || manquants="$manquants ANDROID_KEY_ALIAS"
+          [ -n "$KEY_PASSWORD" ]   || manquants="$manquants ANDROID_KEY_PASSWORD"
+          [ -n "$PLAY_JSON" ]      || manquants="$manquants PLAY_SERVICE_ACCOUNT_JSON"
+          if [ -n "$manquants" ]; then
+            echo "::error::Secrets absents :$manquants — voir docs/publication-android.md"
+            exit 1
+          fi
+
+      # compileSdk 36 exige un JDK 17 : le 11 échoue sur une erreur de
+      # version de classe, loin de sa cause.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installer les dépendances
+        working-directory: app
+        run: flutter pub get
+
+      # `--no-fatal-infos` : le dépôt porte une info connue et acceptée sur
+      # `svg_to_png_web.dart`, qui ferait échouer chaque exécution sans ça.
+      # Les avertissements et les erreurs, eux, restent bloquants.
+      - name: Analyser
+        working-directory: app
+        run: flutter analyze --no-fatal-infos
+
+      - name: Tester l'app
+        working-directory: app
+        run: flutter test
+
+      - name: Tester les fonctions de paiement
+        run: node --test tests/*.test.js
+
+      - name: Préparer la clé de signature
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          chemin="$GITHUB_WORKSPACE/app/android/upload-keystore.jks"
+          echo "$KEYSTORE" | base64 --decode > "$chemin"
+
+          # Chemin absolu : `file()` dans android/app/build.gradle résout
+          # autrement selon le module, et une erreur là-dessus ne se voit
+          # qu'au moment de signer.
+          {
+            echo "storeFile=$chemin"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > "$GITHUB_WORKSPACE/app/android/key.properties"
+
+      - name: Construire le bundle signé
+        working-directory: app
+        env:
+          BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          if [ -n "$BUILD_NUMBER" ]; then
+            flutter build appbundle --release --build-number="$BUILD_NUMBER"
+          else
+            flutter build appbundle --release
+          fi
+
+      # Gardé quoi qu'il arrive : si le dépôt sur Play échoue, le bundle
+      # reste téléchargeable et déposable à la main.
+      - name: Conserver le bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: quickconvert-aab
+          path: ${{ env.AAB_PATH }}
+          retention-days: 30
+
+      # Une publication en production part en brouillon : c'est un humain qui
+      # décide de la rendre visible. Les pistes de test, elles, sont faites
+      # pour être livrées directement.
+      - name: Choisir la piste et l'état
+        id: cible
+        env:
+          PISTE: ${{ inputs.track || 'internal' }}
+        run: |
+          piste="$PISTE"
+          etat="completed"
+          [ "$piste" = "production" ] && etat="draft"
+          echo "piste=$piste" >> "$GITHUB_OUTPUT"
+          echo "etat=$etat" >> "$GITHUB_OUTPUT"
+          echo "Publication sur « $piste » en état « $etat »."
+
+      - name: Déposer sur la Play Console
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ env.PACKAGE_NAME }}
+          releaseFiles: ${{ env.AAB_PATH }}
+          track: ${{ steps.cible.outputs.piste }}
+          status: ${{ steps.cible.outputs.etat }}
+
+      - name: Effacer la clé de signature
+        if: always()
+        run: |
+          rm -f "$GITHUB_WORKSPACE/app/android/upload-keystore.jks" \
+                "$GITHUB_WORKSPACE/app/android/key.properties"
