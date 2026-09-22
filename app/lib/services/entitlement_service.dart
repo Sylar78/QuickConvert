@@ -11,6 +11,10 @@ enum EntitlementSource {
   /// Achat passé par l'App Store d'Apple.
   appStore,
 
+  /// Abonnement souscrit par carte via Stripe, sur le web. Rattaché au
+  /// navigateur, pas à un compte : voir `StripeBillingService.deviceId`.
+  stripe,
+
   /// Activation manuelle en mode développement. Jamais présente dans un
   /// build de production : voir `PremiumScreen`.
   debug,

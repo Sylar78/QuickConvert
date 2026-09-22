@@ -1,8 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/core.dart';
 import '../../models/models.dart';
@@ -18,27 +17,26 @@ class PremiumScreen extends StatefulWidget {
 }
 
 class _PremiumScreenState extends State<PremiumScreen> {
-  bool _isYearly = true;
+  PremiumPlan _selected = PremiumPlan.yearly;
   SubscriptionProvider? _subscriptions;
 
   @override
   void initState() {
     super.initState();
-    // Le sort d'un achat n'arrive pas au retour de `buy()` mais par le flux du
-    // store, parfois bien plus tard (un paiement différé peut mettre des
-    // jours). L'écran écoute donc le provider au lieu d'attendre une valeur de
-    // retour.
+    // Le sort d'un paiement n'arrive pas au retour de `buy()` : sur mobile il
+    // vient du flux du store, parfois des jours plus tard ; sur le web l'app
+    // est rechargée au retour de Stripe. L'écran écoute donc le provider.
     _subscriptions = context.read<SubscriptionProvider>()
-      ..addListener(_onStoreEvent);
+      ..addListener(_onBillingEvent);
   }
 
   @override
   void dispose() {
-    _subscriptions?.removeListener(_onStoreEvent);
+    _subscriptions?.removeListener(_onBillingEvent);
     super.dispose();
   }
 
-  void _onStoreEvent() {
+  void _onBillingEvent() {
     final subscriptions = _subscriptions;
     final message = subscriptions?.message;
     if (subscriptions == null || message == null) return;
@@ -72,10 +70,9 @@ class _PremiumScreenState extends State<PremiumScreen> {
                 _Hero(),
                 const SizedBox(height: AppSpacing.xxl),
                 _PlanPicker(
-                  isYearly: _isYearly,
-                  monthlyPrice: _monthlyPrice(subscriptions),
-                  yearlyPrice: _yearlyPrice(subscriptions),
-                  onChanged: (yearly) => setState(() => _isYearly = yearly),
+                  offers: subscriptions.offers,
+                  selected: _selected,
+                  onChanged: (plan) => setState(() => _selected = plan),
                 ),
                 const SizedBox(height: AppSpacing.xxl),
                 Text('Ce que ça change', style: context.texts.headlineSmall),
@@ -92,33 +89,21 @@ class _PremiumScreenState extends State<PremiumScreen> {
     );
   }
 
-  // Le prix vient du store dès qu'il a répondu : c'est lui qui connaît la
-  // devise et la fiscalité de l'utilisateur, et le Play Store demande que ce
-  // soit celui-là qui s'affiche. Les constantes ne servent que d'attente.
-  String _monthlyPrice(SubscriptionProvider provider) =>
-      provider.monthlyProduct?.price ?? AppConstants.fallbackMonthlyPrice;
-
-  String _yearlyPrice(SubscriptionProvider provider) =>
-      provider.yearlyProduct?.price ?? AppConstants.fallbackYearlyPrice;
-
-  /// Ce que l'utilisateur peut faire dépend de l'état du store, pas seulement
-  /// de son envie d'acheter. Avant, le bouton était toujours là et n'aboutissait
-  /// nulle part sur le web.
+  /// Ce que l'utilisateur peut faire dépend de l'état du moyen de paiement,
+  /// pas seulement de son envie de s'abonner. Avant, le bouton était toujours
+  /// là et n'aboutissait nulle part sur le web.
   List<Widget> _buildCallToAction(SubscriptionProvider subscriptions) {
     switch (subscriptions.availability) {
       case StoreAvailability.checking:
-        return [
-          const _PendingButton(label: 'Connexion au store…'),
-        ];
+        return [const _PendingButton(label: 'Connexion en cours…')];
 
       case StoreAvailability.unsupported:
         return [
           const _StoreNotice(
             icon: Icons.phone_iphone_rounded,
             title: 'L\'abonnement se souscrit depuis l\'app mobile',
-            body: 'Le paiement passe par Google Play, qui n\'existe pas sur le '
-                'web. Installe QuickConvert sur ton téléphone pour t\'abonner. '
-                'Ici, les conversions gratuites restent disponibles.',
+            body: 'Le paiement passe par Google Play, qui n\'existe pas ici. '
+                'Les conversions gratuites, elles, restent disponibles.',
           ),
           ..._debugActivation(),
         ];
@@ -127,9 +112,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
         return [
           const _StoreNotice(
             icon: Icons.cloud_off_rounded,
-            title: 'Le store ne répond pas',
-            body: 'Vérifie ta connexion et que l\'app a bien été installée '
-                'depuis le Play Store, puis réessaie.',
+            title: 'Le paiement ne répond pas',
+            body: 'Vérifie ta connexion, puis réessaie.',
           ),
           const SizedBox(height: AppSpacing.md),
           OutlinedButton(
@@ -145,24 +129,43 @@ class _PremiumScreenState extends State<PremiumScreen> {
           const SizedBox(height: AppSpacing.sm),
           Center(
             child: TextButton(
-              onPressed: subscriptions.isBusy ? null : _restorePurchases,
-              child: const Text('Restaurer mes achats'),
+              onPressed: subscriptions.isBusy ? null : _restore,
+              child: Text(subscriptions.isBrowserBound
+                  ? 'Vérifier mon abonnement'
+                  : 'Restaurer mes achats'),
             ),
           ),
-          Center(
-            child: Text(
-              'Renouvellement automatique, annulable à tout moment '
-              'depuis ton compte du store.',
-              style: context.texts.bodySmall,
-              textAlign: TextAlign.center,
+          if (subscriptions.isBrowserBound) ...[
+            Center(
+              child: TextButton(
+                onPressed: subscriptions.isBusy ? null : _askForRestoreCode,
+                child: const Text('J\'ai déjà un abonnement sur un autre appareil'),
+              ),
             ),
-          ),
+            const SizedBox(height: AppSpacing.sm),
+            const _StoreNotice(
+              icon: Icons.info_outline_rounded,
+              title: 'Ton abonnement sera rattaché à ce navigateur',
+              body: 'QuickConvert n\'a pas encore de comptes. Après le '
+                  'paiement, garde le code affiché sur l\'écran Premium : '
+                  'c\'est lui qui te permettra de retrouver ton abonnement '
+                  'ailleurs, ou si tu effaces les données du site.',
+            ),
+          ] else
+            Center(
+              child: Text(
+                'Renouvellement automatique, annulable à tout moment '
+                'depuis ton compte du store.',
+                style: context.texts.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+            ),
         ];
     }
   }
 
   /// Raccourci de développement : permet de tester l'app en Premium sans
-  /// store. `kDebugMode` est résolu à la compilation, donc ce bouton n'existe
+  /// payer. `kDebugMode` est résolu à la compilation, donc ce bouton n'existe
   /// pas dans un build de production — sans quoi il offrirait l'abonnement à
   /// quiconque ouvre la version web.
   List<Widget> _debugActivation() {
@@ -180,34 +183,73 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
   Widget _buildPurchaseButton(SubscriptionProvider subscriptions) {
     if (subscriptions.flow == PurchaseFlowStatus.pending) {
-      return const _PendingButton(label: 'Validation par le store…');
+      return const _PendingButton(label: 'Paiement en cours…');
     }
     if (subscriptions.flow == PurchaseFlowStatus.loadingProducts) {
       return const _PendingButton(label: 'Chargement des offres…');
     }
 
-    final product = _selectedProduct(subscriptions);
+    // Sur mobile il faut que le store ait livré l'offre ; sur le web c'est
+    // Stripe qui affiche le prix définitif sur sa propre page.
+    final offer = subscriptions.offerFor(_selected);
+    final blocked = subscriptions.backend == BillingBackend.store &&
+        offer.storeProduct == null;
 
     return ElevatedButton(
-      // Sans offre chargée il n'y a rien à acheter : mieux vaut un bouton
-      // éteint qu'un bouton qui échoue.
-      onPressed: product == null ? null : () => _purchase(product),
-      child: Text(_isYearly
-          ? 'Prendre l\'abonnement annuel'
-          : 'Prendre l\'abonnement mensuel'),
+      onPressed: blocked ? null : () => subscriptions.buy(_selected),
+      child: Text('Prendre l\'abonnement ${_selected.title.toLowerCase()}'),
     );
   }
 
-  ProductDetails? _selectedProduct(SubscriptionProvider subscriptions) =>
-      _isYearly ? subscriptions.yearlyProduct : subscriptions.monthlyProduct;
-
-  Future<void> _purchase(ProductDetails product) =>
-      context.read<SubscriptionProvider>().buy(product);
-
   Future<void> _retry() => context.read<SubscriptionProvider>().retry();
 
-  Future<void> _restorePurchases() =>
+  Future<void> _restore() =>
       context.read<SubscriptionProvider>().restorePurchases();
+
+  /// Reprise d'un abonnement souscrit ailleurs, par son code.
+  Future<void> _askForRestoreCode() async {
+    final controller = TextEditingController();
+    final code = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        title: const Text('Reprendre un abonnement'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Colle le code affiché sur l\'écran Premium de l\'appareil où '
+              'tu as payé.',
+            ),
+            const SizedBox(height: AppSpacing.md),
+            TextField(
+              controller: controller,
+              autofocus: true,
+              decoration: const InputDecoration(hintText: 'Code d\'abonnement'),
+              onSubmitted: (value) => Navigator.pop(dialogContext, value),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Annuler'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('Reprendre'),
+          ),
+        ],
+      ),
+    );
+
+    controller.dispose();
+    if (!mounted || code == null || code.trim().isEmpty) return;
+    await context.read<SubscriptionProvider>().restoreWithCode(code);
+  }
 
   void _notify(String message) {
     if (!mounted) return;
@@ -217,8 +259,8 @@ class _PremiumScreenState extends State<PremiumScreen> {
   }
 }
 
-/// Bouton plein, désactivé, avec un indicateur : montre qu'on attend le store
-/// sans laisser l'utilisateur relancer un paiement en double.
+/// Bouton plein, désactivé, avec un indicateur : montre qu'on attend sans
+/// laisser l'utilisateur relancer un paiement en double.
 class _PendingButton extends StatelessWidget {
   final String label;
   const _PendingButton({required this.label});
@@ -247,7 +289,7 @@ class _PendingButton extends StatelessWidget {
   }
 }
 
-/// Explique pourquoi l'achat n'est pas possible ici, au lieu d'un bouton mort.
+/// Explique une situation au lieu de laisser un bouton mort ou un silence.
 class _StoreNotice extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -326,55 +368,48 @@ class _Hero extends StatelessWidget {
 }
 
 class _PlanPicker extends StatelessWidget {
-  final bool isYearly;
-  final String monthlyPrice;
-  final String yearlyPrice;
-  final ValueChanged<bool> onChanged;
+  final List<PlanOffer> offers;
+  final PremiumPlan selected;
+  final ValueChanged<PremiumPlan> onChanged;
 
   const _PlanPicker({
-    required this.isYearly,
-    required this.monthlyPrice,
-    required this.yearlyPrice,
+    required this.offers,
+    required this.selected,
     required this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    // L'annuel d'abord : c'est la formule mise en avant.
+    final ordered = [
+      ...offers.where((o) => o.plan == PremiumPlan.yearly),
+      ...offers.where((o) => o.plan != PremiumPlan.yearly),
+    ];
+
     return Column(
       children: [
-        _PlanOption(
-          title: 'Annuel',
-          price: yearlyPrice,
-          period: 'par an',
-          badge: 'Le plus avantageux',
-          isSelected: isYearly,
-          onTap: () => onChanged(true),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        _PlanOption(
-          title: 'Mensuel',
-          price: monthlyPrice,
-          period: 'par mois',
-          isSelected: !isYearly,
-          onTap: () => onChanged(false),
-        ),
+        for (final offer in ordered) ...[
+          _PlanOption(
+            offer: offer,
+            badge: offer.plan == PremiumPlan.yearly ? 'Le plus avantageux' : null,
+            isSelected: offer.plan == selected,
+            onTap: () => onChanged(offer.plan),
+          ),
+          if (offer != ordered.last) const SizedBox(height: AppSpacing.md),
+        ],
       ],
     );
   }
 }
 
 class _PlanOption extends StatelessWidget {
-  final String title;
-  final String price;
-  final String period;
+  final PlanOffer offer;
   final String? badge;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _PlanOption({
-    required this.title,
-    required this.price,
-    required this.period,
+    required this.offer,
     required this.isSelected,
     required this.onTap,
     this.badge,
@@ -388,7 +423,8 @@ class _PlanOption extends StatelessWidget {
     return Semantics(
       button: true,
       selected: isSelected,
-      label: 'Abonnement $title, $price $period',
+      label: 'Abonnement ${offer.plan.title}, '
+          '${offer.priceLabel} ${offer.plan.period}',
       excludeSemantics: true,
       child: Material(
         color: Colors.transparent,
@@ -422,7 +458,7 @@ class _PlanOption extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          Text(title, style: context.texts.titleLarge),
+                          Text(offer.plan.title, style: context.texts.titleLarge),
                           if (badge != null) ...[
                             const SizedBox(width: AppSpacing.sm),
                             Container(
@@ -430,7 +466,8 @@ class _PlanOption extends StatelessWidget {
                                   horizontal: AppSpacing.sm, vertical: 2),
                               decoration: BoxDecoration(
                                 color: palette.success.withAlpha(38),
-                                borderRadius: BorderRadius.circular(AppRadius.pill),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.pill),
                               ),
                               child: Text(
                                 badge!,
@@ -445,11 +482,11 @@ class _PlanOption extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: AppSpacing.xxs),
-                      Text(period, style: context.texts.bodySmall),
+                      Text(offer.plan.period, style: context.texts.bodySmall),
                     ],
                   ),
                 ),
-                Text(price, style: context.texts.headlineSmall),
+                Text(offer.priceLabel, style: context.texts.headlineSmall),
               ],
             ),
           ),
@@ -488,21 +525,27 @@ class _AlreadyPremium extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = context.palette;
-    final fromStore = entitlement.source == EntitlementSource.playStore ||
-        entitlement.source == EntitlementSource.appStore;
+    final subscriptions = context.watch<SubscriptionProvider>();
+    final isDebug = entitlement.source == EntitlementSource.debug;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Premium')),
-      body: Center(
+      body: SafeArea(
+        top: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(AppSpacing.xxxl),
+          padding: const EdgeInsets.all(AppSpacing.xxl),
           child: ContentColumn(
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const SizedBox(height: AppSpacing.xxl),
                 Icon(Icons.verified_rounded, color: palette.premium, size: 64),
                 const SizedBox(height: AppSpacing.xl),
-                Text('Tu es Premium', style: context.texts.headlineMedium),
+                Text(
+                  'Tu es Premium',
+                  style: context.texts.headlineMedium,
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: AppSpacing.sm),
                 Text(
                   'Conversions illimitées, sans publicité.',
@@ -510,20 +553,30 @@ class _AlreadyPremium extends StatelessWidget {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppSpacing.xl),
-                Text(entitlement.planLabel, style: context.texts.titleMedium),
-                if (entitlement.source == EntitlementSource.debug) ...[
+                Text(
+                  entitlement.planLabel,
+                  style: context.texts.titleMedium,
+                  textAlign: TextAlign.center,
+                ),
+                if (isDebug) ...[
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     'Activation de développement',
                     style: context.texts.bodySmall,
+                    textAlign: TextAlign.center,
                   ),
                 ],
-                if (fromStore) ...[
+                if (entitlement.source == EntitlementSource.stripe) ...[
+                  const SizedBox(height: AppSpacing.xl),
+                  _RestoreCode(code: subscriptions.restoreCode),
+                ],
+                if (!isDebug) ...[
                   const SizedBox(height: AppSpacing.xl),
                   // Le Play Store impose que l'app mène à la page où l'on
-                  // résilie. Ne pas l'avoir est un motif de rejet.
+                  // résilie, et vendre un abonnement sans ce chemin ne se
+                  // fait pas non plus sur le web.
                   OutlinedButton.icon(
-                    onPressed: _openStoreSubscriptions,
+                    onPressed: () => _manage(context),
                     icon: const Icon(Icons.open_in_new_rounded, size: 18),
                     label: const Text('Gérer ou résilier mon abonnement'),
                   ),
@@ -536,10 +589,76 @@ class _AlreadyPremium extends StatelessWidget {
     );
   }
 
-  Future<void> _openStoreSubscriptions() async {
-    final url = entitlement.source == EntitlementSource.appStore
-        ? AppConstants.appStoreSubscriptionsUrl
-        : AppConstants.playSubscriptionsUrl;
-    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  Future<void> _manage(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final opened =
+        await context.read<SubscriptionProvider>().openManageSubscription();
+    if (opened) return;
+
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(
+        content: Text('La page de gestion n\'a pas pu s\'ouvrir.'),
+      ));
+  }
+}
+
+/// Le code qui rattache un abonnement Stripe à ce navigateur.
+///
+/// Faute de comptes utilisateurs, c'est la seule chose qui permet de retrouver
+/// son abonnement ailleurs — donc il doit être visible et copiable, pas caché.
+class _RestoreCode extends StatelessWidget {
+  final String code;
+
+  const _RestoreCode({required this.code});
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        color: palette.sunken,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: palette.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Ton code d\'abonnement', style: context.texts.titleMedium),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Garde-le : il te permet de retrouver ton abonnement sur un autre '
+            'navigateur, ou si tu effaces les données du site.',
+            style: context.texts.bodySmall,
+          ),
+          const SizedBox(height: AppSpacing.md),
+          SelectableText(
+            code,
+            style: context.texts.bodyMedium?.copyWith(
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => _copy(context),
+              icon: const Icon(Icons.copy_rounded, size: 18),
+              label: const Text('Copier'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _copy(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    await Clipboard.setData(ClipboardData(text: code));
+    messenger
+      ..hideCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('Code copié.')));
   }
 }

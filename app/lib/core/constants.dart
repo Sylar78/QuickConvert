@@ -52,6 +52,16 @@ class AppConstants {
   /// paraît figée.
   static const Duration restoreSettleDelay = Duration(seconds: 6);
 
+  /// Base des fonctions de paiement Stripe. Vide par défaut : sur le web,
+  /// elles sont servies par le même déploiement Vercel que l'app, donc
+  /// l'origine courante suffit. À renseigner seulement si l'API est ailleurs.
+  static const String billingUrl =
+      String.fromEnvironment('QC_BILLING_URL', defaultValue: '');
+
+  /// Au-delà, on considère que le serveur de paiement ne répond pas — sans
+  /// pour autant conclure que l'utilisateur n'est pas abonné.
+  static const Duration billingTimeout = Duration(seconds: 12);
+
   /// Page de gestion des abonnements de Google Play. Le Play Store exige que
   /// l'app y donne accès depuis l'écran de l'abonnement.
   static const String playSubscriptionsUrl =

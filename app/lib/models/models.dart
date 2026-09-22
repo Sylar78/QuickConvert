@@ -4,3 +4,4 @@ export 'file_format.dart';
 export 'source_file.dart';
 export 'subscription_model.dart';
 export 'user_model.dart';
+export 'premium_plan.dart';

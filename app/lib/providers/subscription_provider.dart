@@ -2,26 +2,37 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../core/constants.dart';
+import '../models/premium_plan.dart';
 import '../services/services.dart';
 
-/// Ce que le store de la plateforme peut faire pour nous.
+/// Qui encaisse l'abonnement sur cette plateforme.
+enum BillingBackend {
+  /// Personne : ni store ni serveur de paiement configuré.
+  none,
+
+  /// Google Play ou l'App Store, via `in_app_purchase`.
+  store,
+
+  /// Stripe, via les fonctions `/api` déployées à côté de l'app web.
+  stripe,
+}
+
+/// Ce que le moyen de paiement de la plateforme peut faire pour nous.
 enum StoreAvailability {
-  /// La connexion au store n'a pas encore abouti.
+  /// La connexion n'a pas encore abouti.
   checking,
 
-  /// Il n'y a pas de store sur cette plateforme. C'est le cas du web : ni
-  /// Google Play ni l'App Store n'y existent, et encaisser une carte
-  /// demanderait un prestataire de paiement et un serveur pour valider
-  /// l'abonnement — la clé secrète ne peut pas vivre dans le bundle.
+  /// Aucun moyen de paiement sur cette plateforme.
   unsupported,
 
-  /// Un store existe mais ne répond pas : Play Services absent, appareil
-  /// hors ligne, ou build installé hors du store.
+  /// Il y en a un, mais il ne répond pas : Play Services absent, appareil
+  /// hors ligne, ou fonctions Stripe non configurées côté serveur.
   unavailable,
 
-  /// Le store répond, les offres sont achetables.
+  /// Les formules sont souscriptibles.
   ready,
 }
 
@@ -29,65 +40,87 @@ enum StoreAvailability {
 enum PurchaseFlowStatus {
   idle,
 
-  /// Les offres sont en cours de chargement depuis le store.
+  /// Les offres sont en cours de chargement.
   loadingProducts,
 
-  /// Le paiement est parti et on attend la réponse du store. Sur Android, ça
-  /// couvre aussi les paiements différés (virement, carte à valider), qui
-  /// peuvent prendre plusieurs jours.
+  /// Le paiement est parti et on attend la réponse. Sur Android, ça couvre
+  /// aussi les paiements différés (virement, carte à valider), qui peuvent
+  /// prendre plusieurs jours.
   pending,
 
-  /// Le store a confirmé : l'abonnement est accordé et persisté.
+  /// L'abonnement est accordé et persisté.
   success,
 
-  /// L'utilisateur a fermé la feuille de paiement. Ce n'est pas une erreur.
+  /// L'utilisateur a fermé la page de paiement. Ce n'est pas une erreur.
   canceled,
 
-  /// Le store a refusé l'achat.
+  /// Le paiement a été refusé.
   failed,
 }
 
-/// Pilote les abonnements : chargement des offres, achat, restauration, et
-/// réconciliation de l'abonnement local avec ce que dit le store.
+/// Une formule telle qu'elle est proposée à l'utilisateur, quel que soit le
+/// moyen de paiement derrière.
+@immutable
+class PlanOffer {
+  final PremiumPlan plan;
+  final String priceLabel;
+
+  /// L'offre du store, quand c'est lui qui encaisse. Nulle sur le web.
+  final ProductDetails? storeProduct;
+
+  const PlanOffer({
+    required this.plan,
+    required this.priceLabel,
+    this.storeProduct,
+  });
+}
+
+/// Pilote les abonnements : chargement des offres, souscription, restauration,
+/// et réconciliation de l'abonnement local avec ce que dit le payeur.
 ///
-/// L'accès Premium n'est jamais accordé depuis l'interface : il est écrit par
-/// [_handlePurchase], au moment où le store confirme l'achat. Avant, cette
-/// classe recevait un callback `onSuccess` qu'elle ne rappelait jamais — un
-/// achat réel débitait l'utilisateur sans rien lui donner.
+/// L'accès Premium n'est jamais accordé par l'interface : il est écrit ici, au
+/// moment où le store ou Stripe confirme. Avant, cette classe recevait un
+/// callback `onSuccess` qu'elle ne rappelait jamais — un achat réel débitait
+/// l'utilisateur sans rien lui donner.
 class SubscriptionProvider extends ChangeNotifier {
   SubscriptionProvider({
     required VoidCallback onEntitlementChanged,
     EntitlementService? entitlements,
+    StripeBillingService? stripe,
   })  : _onEntitlementChanged = onEntitlementChanged,
-        _entitlements = entitlements ?? EntitlementService();
+        _entitlements = entitlements ?? EntitlementService(),
+        _stripe = stripe ?? StripeBillingService();
 
   final VoidCallback _onEntitlementChanged;
   final EntitlementService _entitlements;
+  final StripeBillingService _stripe;
 
   InAppPurchase? _iap;
   StreamSubscription<List<PurchaseDetails>>? _purchases;
   bool _initialized = false;
   bool _disposed = false;
 
+  BillingBackend _backend = BillingBackend.none;
   StoreAvailability _availability = StoreAvailability.checking;
   PurchaseFlowStatus _flow = PurchaseFlowStatus.idle;
   List<ProductDetails> _products = const [];
+  Map<PremiumPlan, StripePrice> _stripePrices = const {};
   String? _message;
 
-  /// Réconciliation en cours : voir [_runRestore].
+  /// Réconciliation avec le store en cours : voir [_runStoreRestore].
   Set<String>? _restoredIds;
   bool _storeAnswered = false;
 
-  /// Vrai quand la réconciliation tourne au lancement, sans que
-  /// l'utilisateur ait rien demandé : elle ne doit alors rien afficher.
+  /// Vrai quand la réconciliation tourne au lancement, sans que l'utilisateur
+  /// ait rien demandé : elle ne doit alors rien afficher.
   bool _silentRestore = false;
 
+  BillingBackend get backend => _backend;
   StoreAvailability get availability => _availability;
   PurchaseFlowStatus get flow => _flow;
-  List<ProductDetails> get products => _products;
 
-  /// Dernier message à montrer à l'utilisateur, ou `null` s'il n'y a rien à
-  /// dire (une annulation, par exemple).
+  /// Dernier message à montrer, ou `null` s'il n'y a rien à dire (une
+  /// annulation, par exemple).
   String? get message => _message;
 
   bool get isReady => _availability == StoreAvailability.ready;
@@ -95,12 +128,40 @@ class SubscriptionProvider extends ChangeNotifier {
       _flow == PurchaseFlowStatus.pending ||
       _flow == PurchaseFlowStatus.loadingProducts;
 
-  ProductDetails? get monthlyProduct => _productById(AppConstants.premiumMonthlyId);
-  ProductDetails? get yearlyProduct => _productById(AppConstants.premiumYearlyId);
+  /// Vrai quand l'abonnement est attaché à ce navigateur et pas à un compte :
+  /// l'écran Premium doit alors le dire, et proposer le code de reprise.
+  bool get isBrowserBound => _backend == BillingBackend.stripe;
 
-  ProductDetails? _productById(String id) {
+  /// Le code qui rattache l'abonnement Stripe à ce navigateur. À garder pour
+  /// pouvoir le reprendre ailleurs, faute de comptes utilisateurs.
+  String get restoreCode => _stripe.deviceId;
+
+  /// Les deux formules, prix compris quand le payeur les a donnés.
+  List<PlanOffer> get offers =>
+      PremiumPlan.values.map(offerFor).toList(growable: false);
+
+  PlanOffer offerFor(PremiumPlan plan) {
+    final product = _storeProductFor(plan);
+    if (product != null) {
+      return PlanOffer(
+        plan: plan,
+        // Le prix vient du store : lui seul connaît la devise et la fiscalité
+        // de l'utilisateur, et le Play Store exige que ce soit celui-là.
+        priceLabel: product.price,
+        storeProduct: product,
+      );
+    }
+
+    final stripePrice = _stripePrices[plan];
+    return PlanOffer(
+      plan: plan,
+      priceLabel: stripePrice?.label ?? plan.fallbackPrice,
+    );
+  }
+
+  ProductDetails? _storeProductFor(PremiumPlan plan) {
     for (final product in _products) {
-      if (product.id == id) return product;
+      if (product.id == plan.storeProductId) return product;
     }
     return null;
   }
@@ -113,17 +174,36 @@ class SubscriptionProvider extends ChangeNotifier {
         defaultTargetPlatform == TargetPlatform.macOS;
   }
 
-  /// Se connecte au store, charge les offres, puis vérifie que l'abonnement
-  /// gardé en local est toujours actif. Sans effet si déjà appelée.
+  /// Se connecte au payeur de la plateforme, charge les offres, puis vérifie
+  /// que l'abonnement gardé en local est toujours actif.
   Future<void> initialize() async {
     if (_initialized) return;
     _initialized = true;
 
-    if (!_storeSupported) {
+    if (_storeSupported) {
+      await _initializeStore();
+    } else if (StripeBillingService.isConfigured) {
+      await _initializeStripe();
+    } else {
+      _backend = BillingBackend.none;
       _availability = StoreAvailability.unsupported;
       _notify();
-      return;
     }
+  }
+
+  /// Retente la connexion, après un échec.
+  Future<void> retry() async {
+    _initialized = false;
+    _availability = StoreAvailability.checking;
+    _message = null;
+    _notify();
+    await initialize();
+  }
+
+  // ───────────────────────────────────────────────────────────── Google Play
+
+  Future<void> _initializeStore() async {
+    _backend = BillingBackend.store;
 
     try {
       _iap = InAppPurchase.instance;
@@ -159,20 +239,11 @@ class SubscriptionProvider extends ChangeNotifier {
     _availability = StoreAvailability.ready;
     _notify();
 
-    await loadProducts();
-    await _runRestore(userInitiated: false);
+    await _loadStoreProducts();
+    await _runStoreRestore(userInitiated: false);
   }
 
-  /// Retente la connexion au store, après un échec.
-  Future<void> retry() async {
-    _initialized = false;
-    _availability = StoreAvailability.checking;
-    _message = null;
-    _notify();
-    await initialize();
-  }
-
-  Future<void> loadProducts() async {
+  Future<void> _loadStoreProducts() async {
     final iap = _iap;
     if (iap == null) return;
 
@@ -180,10 +251,9 @@ class SubscriptionProvider extends ChangeNotifier {
     _notify();
 
     try {
-      final response = await iap.queryProductDetails(<String>{
-        AppConstants.premiumMonthlyId,
-        AppConstants.premiumYearlyId,
-      });
+      final response = await iap.queryProductDetails(
+        PremiumPlan.values.map((p) => p.storeProductId).toSet(),
+      );
 
       if (response.productDetails.isNotEmpty) {
         _products = response.productDetails;
@@ -193,122 +263,13 @@ class SubscriptionProvider extends ChangeNotifier {
         // publiés dans la console du store, ou l'app n'est pas installée
         // depuis le store. L'utilisateur n'y peut rien, on le dit sans jargon.
         _message = response.error?.message ??
-            "Les offres ne sont pas disponibles pour le moment.";
+            'Les offres ne sont pas disponibles pour le moment.';
         _flow = PurchaseFlowStatus.failed;
       }
     } catch (e) {
       debugPrint('queryProductDetails: $e');
       _message = 'Impossible de charger les offres.';
       _flow = PurchaseFlowStatus.failed;
-    }
-
-    _notify();
-  }
-
-  /// Lance l'achat d'une offre. Le résultat n'arrive pas au retour de cette
-  /// méthode mais par le flux d'achats, d'où l'absence de valeur de retour.
-  Future<void> buy(ProductDetails product) async {
-    final iap = _iap;
-    if (iap == null) return;
-
-    _flow = PurchaseFlowStatus.pending;
-    _message = null;
-    _notify();
-
-    try {
-      // Un abonnement s'achète en « non consommable » : il ne se rachète pas,
-      // il se renouvelle. `buyConsumable` le rendrait rachetable en boucle.
-      final started = await iap.buyNonConsumable(
-        purchaseParam: PurchaseParam(productDetails: product),
-      );
-      if (!started) {
-        _flow = PurchaseFlowStatus.failed;
-        _message = "Le store n'a pas pu ouvrir le paiement.";
-        _notify();
-      }
-    } catch (e) {
-      debugPrint('buyNonConsumable: $e');
-      _flow = PurchaseFlowStatus.failed;
-      _message = "L'achat n'a pas pu démarrer.";
-      _notify();
-    }
-  }
-
-  /// Restauration demandée par l'utilisateur, depuis l'écran Premium.
-  Future<void> restorePurchases() => _runRestore(userInitiated: true);
-
-  /// Redemande au store ses achats actifs et aligne l'abonnement local dessus.
-  ///
-  /// C'est la seule façon, sans serveur de validation, d'apprendre qu'un
-  /// abonnement a été résilié ou non renouvelé : le store cesse simplement de
-  /// le renvoyer. L'accès n'est donc retiré que si le store **a répondu** sans
-  /// mentionner notre abonnement ; s'il ne répond pas (hors ligne, Play
-  /// Services en vrac), on garde l'accès tel quel, parce que couper le Premium
-  /// d'un client qui paie est bien pire que de le laisser un jour de trop.
-  Future<void> _runRestore({required bool userInitiated}) async {
-    final iap = _iap;
-    if (iap == null) return;
-
-    final local = _entitlements.read();
-    // Une activation de développement ne vient d'aucun store : la confronter
-    // au store la supprimerait à chaque lancement.
-    if (local.source == EntitlementSource.debug) return;
-    if (!userInitiated && !local.isActive) return;
-
-    _restoredIds = <String>{};
-    _storeAnswered = false;
-    _silentRestore = !userInitiated;
-    if (userInitiated) {
-      _flow = PurchaseFlowStatus.pending;
-      _message = null;
-      _notify();
-    }
-
-    try {
-      await iap.restorePurchases();
-    } catch (e) {
-      debugPrint('restorePurchases: $e');
-      _restoredIds = null;
-      if (userInitiated) {
-        _flow = PurchaseFlowStatus.failed;
-        _message = "Le store n'a pas répondu. Réessaie dans un moment.";
-        _notify();
-      }
-      return;
-    }
-
-    // Les achats restaurés arrivent par le flux, pas en valeur de retour : on
-    // laisse au store le temps de les livrer avant de conclure.
-    await Future<void>.delayed(AppConstants.restoreSettleDelay);
-    if (_disposed) return;
-
-    final restored = _restoredIds ?? const <String>{};
-    final answered = _storeAnswered;
-    _restoredIds = null;
-    _silentRestore = false;
-
-    final stillActive = restored.contains(local.productId) ||
-        restored.contains(AppConstants.premiumMonthlyId) ||
-        restored.contains(AppConstants.premiumYearlyId);
-
-    if (stillActive) {
-      await _entitlements.touch();
-      if (userInitiated) {
-        _flow = PurchaseFlowStatus.success;
-        _message = 'Abonnement restauré.';
-      }
-    } else if (answered) {
-      if (local.isActive) {
-        await _entitlements.revoke();
-        _onEntitlementChanged();
-      }
-      if (userInitiated) {
-        _flow = PurchaseFlowStatus.idle;
-        _message = "Aucun abonnement actif sur ce compte $_storeName.";
-      }
-    } else if (userInitiated) {
-      _flow = PurchaseFlowStatus.failed;
-      _message = "Le store n'a pas répondu. Réessaie dans un moment.";
     }
 
     _notify();
@@ -359,7 +320,7 @@ class SubscriptionProvider extends ChangeNotifier {
         // considérerait comme livré et l'utilisateur aurait payé pour rien.
         await _entitlements.grant(
           productId: purchase.productID,
-          source: _sourceForPlatform,
+          source: _storeSource,
         );
         _onEntitlementChanged();
 
@@ -384,7 +345,295 @@ class SubscriptionProvider extends ChangeNotifier {
     }
   }
 
-  EntitlementSource get _sourceForPlatform =>
+  /// Redemande au store ses achats actifs et aligne l'abonnement local dessus.
+  ///
+  /// C'est la seule façon, sans serveur de validation, d'apprendre qu'un
+  /// abonnement a été résilié ou non renouvelé : le store cesse simplement de
+  /// le renvoyer. L'accès n'est donc retiré que si le store **a répondu** sans
+  /// mentionner notre abonnement ; s'il ne répond pas, on garde l'accès tel
+  /// quel, parce que couper le Premium d'un client qui paie est bien pire.
+  Future<void> _runStoreRestore({required bool userInitiated}) async {
+    final iap = _iap;
+    if (iap == null) return;
+
+    final local = _entitlements.read();
+    // Une activation de développement ne vient d'aucun store : la confronter
+    // au store la supprimerait à chaque lancement.
+    if (local.source == EntitlementSource.debug) return;
+    if (!userInitiated && !local.isActive) return;
+
+    _restoredIds = <String>{};
+    _storeAnswered = false;
+    _silentRestore = !userInitiated;
+    if (userInitiated) {
+      _flow = PurchaseFlowStatus.pending;
+      _message = null;
+      _notify();
+    }
+
+    try {
+      await iap.restorePurchases();
+    } catch (e) {
+      debugPrint('restorePurchases: $e');
+      _restoredIds = null;
+      _silentRestore = false;
+      if (userInitiated) {
+        _flow = PurchaseFlowStatus.failed;
+        _message = "Le store n'a pas répondu. Réessaie dans un moment.";
+        _notify();
+      }
+      return;
+    }
+
+    // Les achats restaurés arrivent par le flux, pas en valeur de retour : on
+    // laisse au store le temps de les livrer avant de conclure.
+    await Future<void>.delayed(AppConstants.restoreSettleDelay);
+    if (_disposed) return;
+
+    final restored = _restoredIds ?? const <String>{};
+    final answered = _storeAnswered;
+    _restoredIds = null;
+    _silentRestore = false;
+
+    final stillActive = PremiumPlan.values
+        .any((plan) => restored.contains(plan.storeProductId));
+
+    if (stillActive) {
+      await _entitlements.touch();
+      if (userInitiated) {
+        _flow = PurchaseFlowStatus.success;
+        _message = 'Abonnement restauré.';
+      }
+    } else if (answered) {
+      if (local.isActive) {
+        await _entitlements.revoke();
+        _onEntitlementChanged();
+      }
+      if (userInitiated) {
+        _flow = PurchaseFlowStatus.idle;
+        _message = 'Aucun abonnement actif sur ce compte $_storeName.';
+      }
+    } else if (userInitiated) {
+      _flow = PurchaseFlowStatus.failed;
+      _message = "Le store n'a pas répondu. Réessaie dans un moment.";
+    }
+
+    _notify();
+  }
+
+  // ───────────────────────────────────────────────────────────────── Stripe
+
+  Future<void> _initializeStripe() async {
+    _backend = BillingBackend.stripe;
+    _availability = StoreAvailability.ready;
+    _flow = PurchaseFlowStatus.loadingProducts;
+    _notify();
+
+    final prices = await _stripe.fetchPrices();
+    if (_disposed) return;
+
+    _stripePrices = prices ?? const {};
+    _flow = PurchaseFlowStatus.idle;
+    // Sans tarif, il n'y a rien à vendre : mieux vaut l'annoncer que laisser
+    // un bouton qui mènera à une erreur. L'abonnement déjà payé, lui, est
+    // vérifié quand même juste en dessous.
+    _availability = _stripePrices.isEmpty
+        ? StoreAvailability.unavailable
+        : StoreAvailability.ready;
+    _notify();
+
+    // Au retour du paiement, Stripe ajoute l'identifiant de session à l'URL :
+    // il rend l'abonnement lisible tout de suite, sans attendre que l'index
+    // de recherche de Stripe le voie.
+    await _syncStripe(
+      sessionId: StripeBillingService.checkoutSessionFromUrl,
+      userInitiated: false,
+    );
+  }
+
+  /// Demande à Stripe l'état de l'abonnement de ce navigateur et aligne
+  /// l'abonnement local dessus.
+  Future<void> _syncStripe({
+    String? sessionId,
+    required bool userInitiated,
+  }) async {
+    final local = _entitlements.read();
+    if (local.source == EntitlementSource.debug) return;
+
+    if (userInitiated) {
+      _flow = PurchaseFlowStatus.pending;
+      _message = null;
+      _notify();
+    }
+
+    final result = await _stripe.fetchEntitlement(sessionId: sessionId);
+    if (_disposed) return;
+
+    switch (result.outcome) {
+      case StripeLookup.active:
+        final plan = result.plan ?? PremiumPlan.monthly;
+        await _entitlements.grant(
+          productId: plan.storeProductId,
+          source: EntitlementSource.stripe,
+          // Stripe, lui, connaît la fin de période : elle sert de filet, et
+          // elle est rafraîchie à chaque lancement.
+          expiresAt: result.currentPeriodEnd,
+        );
+        _onEntitlementChanged();
+        if (userInitiated || sessionId != null) {
+          _flow = PurchaseFlowStatus.success;
+          _message = 'Bienvenue dans QuickConvert Premium.';
+        }
+
+      case StripeLookup.inactive:
+        if (local.isActive && local.source == EntitlementSource.stripe) {
+          await _entitlements.revoke();
+          _onEntitlementChanged();
+        }
+        if (userInitiated) {
+          _flow = PurchaseFlowStatus.idle;
+          _message = 'Aucun abonnement actif pour ce navigateur.';
+        }
+
+      case StripeLookup.unknown:
+        // Le serveur n'a pas répondu : surtout ne pas en conclure que
+        // l'utilisateur n'est pas abonné.
+        if (userInitiated) {
+          _flow = PurchaseFlowStatus.failed;
+          _message = 'Le service de paiement ne répond pas. Réessaie plus tard.';
+        }
+    }
+
+    _notify();
+  }
+
+  /// Reprend un abonnement souscrit depuis un autre navigateur, à partir du
+  /// code affiché sur l'appareil d'origine.
+  ///
+  /// C'est la contrepartie de l'absence de comptes : sans ce code, un
+  /// abonnement resterait prisonnier du navigateur qui l'a payé.
+  Future<void> restoreWithCode(String code) async {
+    final cleaned = code.trim().toLowerCase();
+    if (_backend != BillingBackend.stripe) return;
+
+    if (!RegExp(r'^[0-9a-f-]{36}$').hasMatch(cleaned)) {
+      _flow = PurchaseFlowStatus.failed;
+      _message = "Ce code n'a pas le bon format.";
+      _notify();
+      return;
+    }
+
+    _stripe.adoptDeviceId(cleaned);
+    await _syncStripe(userInitiated: true);
+  }
+
+  // ────────────────────────────────────────────────────────────────── Commun
+
+  /// Souscrit à une formule. Le résultat n'arrive pas au retour de cette
+  /// méthode : sur mobile il vient du flux du store, sur le web l'utilisateur
+  /// part sur la page de Stripe et l'app est rechargée à son retour.
+  Future<void> buy(PremiumPlan plan) async {
+    switch (_backend) {
+      case BillingBackend.store:
+        await _buyFromStore(plan);
+      case BillingBackend.stripe:
+        await _buyFromStripe(plan);
+      case BillingBackend.none:
+        return;
+    }
+  }
+
+  Future<void> _buyFromStore(PremiumPlan plan) async {
+    final iap = _iap;
+    final product = _storeProductFor(plan);
+    if (iap == null || product == null) return;
+
+    _flow = PurchaseFlowStatus.pending;
+    _message = null;
+    _notify();
+
+    try {
+      // Un abonnement s'achète en « non consommable » : il ne se rachète pas,
+      // il se renouvelle. `buyConsumable` le rendrait rachetable en boucle.
+      final started = await iap.buyNonConsumable(
+        purchaseParam: PurchaseParam(productDetails: product),
+      );
+      if (!started) {
+        _flow = PurchaseFlowStatus.failed;
+        _message = "Le store n'a pas pu ouvrir le paiement.";
+        _notify();
+      }
+    } catch (e) {
+      debugPrint('buyNonConsumable: $e');
+      _flow = PurchaseFlowStatus.failed;
+      _message = "L'achat n'a pas pu démarrer.";
+      _notify();
+    }
+  }
+
+  Future<void> _buyFromStripe(PremiumPlan plan) async {
+    _flow = PurchaseFlowStatus.pending;
+    _message = null;
+    _notify();
+
+    final url = await _stripe.startCheckout(plan);
+    if (_disposed) return;
+
+    if (url == null) {
+      _flow = PurchaseFlowStatus.failed;
+      _message = "Le paiement n'a pas pu s'ouvrir. Réessaie dans un moment.";
+      _notify();
+      return;
+    }
+
+    // `_self` : on quitte l'app pour la page de Stripe, et on y revient par
+    // l'URL de succès. Un nouvel onglet serait bloqué par les navigateurs,
+    // l'appel venant d'une réponse réseau et non du clic lui-même.
+    final opened = await launchUrl(
+      Uri.parse(url),
+      webOnlyWindowName: '_self',
+      mode: LaunchMode.platformDefault,
+    );
+    if (_disposed) return;
+
+    if (!opened) {
+      _flow = PurchaseFlowStatus.failed;
+      _message = "Le paiement n'a pas pu s'ouvrir.";
+      _notify();
+    }
+  }
+
+  /// Ouvre la page où l'utilisateur gère sa carte et résilie : celle du store
+  /// sur mobile, le portail client Stripe sur le web.
+  ///
+  /// Vendre un abonnement sans chemin de résiliation n'est pas une option, et
+  /// le Play Store le refuse explicitement.
+  Future<bool> openManageSubscription() async {
+    if (_backend == BillingBackend.stripe) {
+      final url = await _stripe.openPortal();
+      if (url == null) return false;
+      return launchUrl(Uri.parse(url), webOnlyWindowName: '_self');
+    }
+
+    final url = defaultTargetPlatform == TargetPlatform.iOS
+        ? AppConstants.appStoreSubscriptionsUrl
+        : AppConstants.playSubscriptionsUrl;
+    return launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+  }
+
+  /// Restauration demandée par l'utilisateur.
+  Future<void> restorePurchases() async {
+    switch (_backend) {
+      case BillingBackend.store:
+        await _runStoreRestore(userInitiated: true);
+      case BillingBackend.stripe:
+        await _syncStripe(userInitiated: true);
+      case BillingBackend.none:
+        return;
+    }
+  }
+
+  EntitlementSource get _storeSource =>
       defaultTargetPlatform == TargetPlatform.android
           ? EntitlementSource.playStore
           : EntitlementSource.appStore;
@@ -395,9 +644,7 @@ class SubscriptionProvider extends ChangeNotifier {
 
   static String _readableError(IAPError? error) {
     final raw = error?.message;
-    if (raw == null || raw.isEmpty) {
-      return "L'achat n'a pas abouti.";
-    }
+    if (raw == null || raw.isEmpty) return "L'achat n'a pas abouti.";
     return "L'achat n'a pas abouti : $raw";
   }
 
