@@ -1,113 +1,125 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import '../../core/core.dart';
-import '../../models/models.dart';
+import '../core/core.dart';
+import '../models/models.dart';
+import 'format_badge.dart';
 
+/// La feuille de résultat, une fois la conversion réussie.
 class ConversionResultSheet extends StatelessWidget {
-  final List<String> outputPaths;
-  final ConversionType type;
+  final List<String> outputNames;
+  final ConversionRoute route;
+  final bool canShare;
   final VoidCallback onShare;
-  final VoidCallback onDownload;
+  final VoidCallback onOpen;
   final VoidCallback onConvertAgain;
 
   const ConversionResultSheet({
     super.key,
-    required this.outputPaths,
-    required this.type,
+    required this.outputNames,
+    required this.route,
+    required this.canShare,
     required this.onShare,
-    required this.onDownload,
+    required this.onOpen,
     required this.onConvertAgain,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final palette = context.palette;
+    final count = outputNames.length;
+
     return Container(
-      padding: const EdgeInsets.all(28),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.xxl, AppSpacing.lg, AppSpacing.xxl, AppSpacing.xxl),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Handle
-          Container(
-            width: 40,
-            height: 4,
-            decoration: BoxDecoration(
-              color: AppColors.textHint,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-          const SizedBox(height: 28),
-
-          // Succès
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: AppColors.success.withAlpha(25),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.check_circle_rounded,
-              color: AppColors.success,
-              size: 46,
-            ),
-          ).animate().scale(
-                duration: 600.ms,
-                curve: Curves.elasticOut,
-                begin: const Offset(0, 0),
-                end: const Offset(1, 1),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: palette.border,
+                borderRadius: BorderRadius.circular(AppRadius.pill),
               ),
-          const SizedBox(height: 16),
+            ),
+            const SizedBox(height: AppSpacing.xxl),
 
-          Text(
-            'Conversion réussie ! 🎉',
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 8),
+            Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                color: palette.success.withAlpha(36),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.check_rounded, color: palette.success, size: 34),
+            ).animate().scale(
+                  duration: AppDuration.slow,
+                  curve: Curves.elasticOut,
+                  begin: const Offset(0.4, 0.4),
+                  end: const Offset(1, 1),
+                ),
+            const SizedBox(height: AppSpacing.lg),
 
-          Text(
-            '${outputPaths.length} fichier${outputPaths.length > 1 ? 's' : ''} converti${outputPaths.length > 1 ? 's' : ''} avec succès',
-            style: Theme.of(context).textTheme.bodyMedium,
-          ),
-          const SizedBox(height: 28),
+            Text(
+              count > 1 ? '$count fichiers prêts' : 'Fichier prêt',
+              style: context.texts.headlineMedium,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              outputNames.isEmpty ? route.label : outputNames.first,
+              style: context.texts.bodySmall,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: AppSpacing.xl),
 
-          // Actions
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: onShare,
-                  icon: const Icon(Icons.share_rounded),
-                  label: const Text('Partager'),
-                  style: OutlinedButton.styleFrom(
-                    minimumSize: const Size(0, 52),
+            FormatTransition(
+              from: route.from,
+              to: route.to,
+              size: FormatBadgeSize.small,
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+
+            Row(
+              children: [
+                if (canShare) ...[
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: onShare,
+                      icon: const Icon(Icons.ios_share_rounded, size: 19),
+                      label: const Text('Partager'),
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                ],
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: onOpen,
+                    icon: Icon(
+                      canShare ? Icons.open_in_new_rounded : Icons.download_rounded,
+                      size: 19,
+                    ),
+                    label: Text(canShare ? 'Ouvrir' : 'Télécharger'),
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: ElevatedButton.icon(
-                  onPressed: onDownload,
-                  icon: const Icon(Icons.download_rounded),
-                  label: const Text('Ouvrir'),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(0, 52),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          TextButton(
-            onPressed: onConvertAgain,
-            child: const Text('Convertir un autre fichier'),
-          ),
-          const SizedBox(height: 8),
-        ],
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            TextButton(
+              onPressed: onConvertAgain,
+              child: const Text('Convertir autre chose'),
+            ),
+          ],
+        ),
       ),
     );
   }

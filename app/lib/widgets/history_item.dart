@@ -1,143 +1,108 @@
 import 'package:flutter/material.dart';
-import '../../core/core.dart';
-import '../../models/models.dart';
 import 'package:intl/intl.dart';
+import '../core/core.dart';
+import '../models/models.dart';
+import 'format_badge.dart';
 
+/// Une ligne d'historique.
+///
+/// En mode [dense] (aperçu sur l'écran de conversion), la ligne n'est pas
+/// balayable : on ne supprime que depuis l'onglet Historique.
 class HistoryItem extends StatelessWidget {
   final ConversionRecord record;
   final VoidCallback? onTap;
   final VoidCallback? onDelete;
+  final bool dense;
 
   const HistoryItem({
     super.key,
     required this.record,
     this.onTap,
     this.onDelete,
+    this.dense = false,
   });
-
-  Color get _typeColor {
-    switch (record.conversionType) {
-      case ConversionType.pdfToJpg:
-        return AppColors.pdfColor;
-      case ConversionType.jpgToPdf:
-      case ConversionType.pngToPdf:
-        return AppColors.jpgColor;
-      case ConversionType.pngToJpg:
-      case ConversionType.jpgToPng:
-        return AppColors.pngColor;
-      case ConversionType.docToPdf:
-        return AppColors.docColor;
-      case ConversionType.svgToPng:
-        return AppColors.svgColor;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    final formattedDate = DateFormat('dd/MM/yy HH:mm').format(record.createdAt);
+    final tile = _buildTile(context);
+    if (dense || onDelete == null) return tile;
 
     return Dismissible(
       key: Key(record.id),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
-        padding: const EdgeInsets.only(right: 20),
+        padding: const EdgeInsets.only(right: AppSpacing.xl),
         decoration: BoxDecoration(
-          color: AppColors.error.withAlpha(25),
-          borderRadius: BorderRadius.circular(16),
+          color: context.colors.errorContainer,
+          borderRadius: BorderRadius.circular(AppRadius.md),
         ),
-        child: const Icon(Icons.delete_outline_rounded, color: AppColors.error),
+        child: Icon(Icons.delete_outline_rounded,
+            color: context.colors.onErrorContainer),
       ),
       onDismissed: (_) => onDelete?.call(),
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.shadow,
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              // Icône type
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: _typeColor.withAlpha(30),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    record.conversionType.inputFormat,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: _typeColor,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
+      child: tile,
+    );
+  }
 
-              // Infos
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      record.inputFileName,
-                      style: Theme.of(context).textTheme.titleMedium,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 3),
-                    Row(
-                      children: [
-                        Text(
-                          record.conversionType.label,
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: _typeColor,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                        const Text(' · ', style: TextStyle(color: AppColors.textHint)),
-                        Text(
-                          record.formattedSize,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+  Widget _buildTile(BuildContext context) {
+    final palette = context.palette;
+    final route = record.conversionType.route;
+    // Format sans locale : `initializeDateFormatting` n'est pas appelé au
+    // démarrage, et un DateFormat localisé lèverait une exception.
+    final date = DateFormat('dd/MM/yy HH:mm').format(record.createdAt);
 
-              // Date & status
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    formattedDate,
-                    style: Theme.of(context).textTheme.bodySmall,
+    return Semantics(
+      button: onTap != null,
+      label: '${record.inputFileName}, ${route.label}, '
+          '${record.isSuccess ? 'réussie' : 'échouée'}',
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: context.colors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: palette.border),
+            ),
+            child: Row(
+              children: [
+                FormatBadge(format: route.from, size: FormatBadgeSize.small),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        record.inputFileName,
+                        style: context.texts.titleMedium,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        '${route.label} · ${record.formattedSize} · $date',
+                        style: context.texts.bodySmall,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Icon(
-                    record.isSuccess
-                        ? Icons.check_circle_rounded
-                        : Icons.error_rounded,
-                    color: record.isSuccess ? AppColors.success : AppColors.error,
-                    size: 16,
-                  ),
-                ],
-              ),
-            ],
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Icon(
+                  record.isSuccess
+                      ? Icons.check_circle_rounded
+                      : Icons.error_rounded,
+                  color: record.isSuccess ? palette.success : context.colors.error,
+                  size: 18,
+                ),
+              ],
+            ),
           ),
         ),
       ),

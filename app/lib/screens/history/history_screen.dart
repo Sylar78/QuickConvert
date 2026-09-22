@@ -1,6 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:open_file/open_file.dart';
+import 'package:provider/provider.dart';
 import '../../core/core.dart';
 import '../../providers/providers.dart';
 import '../../widgets/widgets.dart';
@@ -17,7 +18,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ConversionProvider>().loadHistory();
+      if (mounted) context.read<ConversionProvider>().loadHistory();
     });
   }
 
@@ -28,120 +29,109 @@ class _HistoryScreenState extends State<HistoryScreen> {
         title: const Text('Historique'),
         actions: [
           Consumer<ConversionProvider>(
-            builder: (_, prov, __) {
-              if (prov.history.isEmpty) return const SizedBox.shrink();
+            builder: (_, provider, __) {
+              if (provider.history.isEmpty) return const SizedBox.shrink();
               return IconButton(
                 icon: const Icon(Icons.delete_sweep_rounded),
-                onPressed: () => _confirmClear(prov),
+                onPressed: () => _confirmClear(provider),
                 tooltip: 'Tout effacer',
               );
             },
           ),
+          const SizedBox(width: AppSpacing.sm),
         ],
       ),
-      body: Column(
-        children: [
-          // Bannière publicitaire en haut
-          Consumer<AuthProvider>(
-            builder: (_, auth, __) {
-              if (auth.user.isPremium) return const SizedBox.shrink();
-              return const Padding(
-                padding: EdgeInsets.fromLTRB(16, 8, 16, 0),
-                child: AdBannerContainer(),
-              );
-            },
-          ),
-          Expanded(
-            child: Consumer<ConversionProvider>(
-              builder: (_, prov, __) {
-                if (prov.history.isEmpty) {
-                  return _buildEmpty();
-                }
+      body: SafeArea(
+        top: false,
+        child: Consumer<ConversionProvider>(
+          builder: (_, provider, __) {
+            if (provider.history.isEmpty) return const _EmptyHistory();
 
-                return ListView.separated(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: prov.history.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 10),
-                  itemBuilder: (context, index) {
-                    final record = prov.history[index];
-                    return HistoryItem(
-                      record: record,
-                      onTap: record.outputFilePath != null
-                          ? () => OpenFile.open(record.outputFilePath!)
-                          : null,
-                      onDelete: () => prov.deleteHistoryItem(record.id),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmpty() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceVariant,
-                shape: BoxShape.circle,
+            return ContentColumn(
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.gutter,
+                    AppSpacing.md, AppSpacing.gutter, AppSpacing.xxxl),
+                itemCount: provider.history.length,
+                separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.sm),
+                itemBuilder: (context, index) {
+                  final record = provider.history[index];
+                  return HistoryItem(
+                    record: record,
+                    // Sur le web, le fichier produit a été téléchargé par le
+                    // navigateur : l'app n'a plus de chemin à ouvrir.
+                    onTap: !kIsWeb && record.outputFilePath != null
+                        ? () => OpenFile.open(record.outputFilePath!)
+                        : null,
+                    onDelete: () => provider.deleteHistoryItem(record.id),
+                  );
+                },
               ),
-              child: const Icon(
-                Icons.history_rounded,
-                size: 48,
-                color: AppColors.textHint,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              'Aucune conversion encore',
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Tes conversions apparaîtront ici\naprès ta première utilisation',
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
   }
 
-  void _confirmClear(ConversionProvider prov) {
-    showDialog(
+  void _confirmClear(ConversionProvider provider) {
+    showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.md)),
         title: const Text('Effacer l\'historique ?'),
-        content: const Text('Cette action est irréversible.'),
+        content: const Text(
+            'Les fichiers déjà convertis restent sur ton appareil, '
+            'seule la liste disparaît.'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Annuler'),
           ),
           TextButton(
             onPressed: () {
-              Navigator.pop(ctx);
-              prov.clearHistory();
+              Navigator.pop(dialogContext);
+              provider.clearHistory();
             },
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
+            style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error),
             child: const Text('Effacer'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _EmptyHistory extends StatelessWidget {
+  const _EmptyHistory();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.xxxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 84,
+              height: 84,
+              decoration: BoxDecoration(color: palette.sunken, shape: BoxShape.circle),
+              child: Icon(Icons.history_rounded, size: 36, color: palette.textMuted),
+            ),
+            const SizedBox(height: AppSpacing.xl),
+            Text('Rien pour l\'instant', style: context.texts.headlineSmall),
+            const SizedBox(height: AppSpacing.sm),
+            Text(
+              'Tes conversions s\'afficheront ici,\nles cinquante dernières.',
+              style: context.texts.bodyMedium,
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }

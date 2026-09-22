@@ -4,6 +4,10 @@ analyzer:
   exclude:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
+    # Code de l'authentification Supabase, gardé pour plus tard : la dépendance
+    # est commentée dans pubspec.yaml, donc ce fichier ne compile pas et n'est
+    # exporté par aucun barrel. L'exclure garde `flutter analyze` lisible.
+    - "lib/services/supabase_service.dart"
   errors:
     missing_required_param: error
     missing_return: error

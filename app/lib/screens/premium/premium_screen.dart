@@ -1,9 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/core.dart';
 import '../../models/models.dart';
 import '../../providers/providers.dart';
+import '../../widgets/widgets.dart';
 
 class PremiumScreen extends StatefulWidget {
   const PremiumScreen({super.key});
@@ -17,344 +18,224 @@ class _PremiumScreenState extends State<PremiumScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final user = authProvider.user;
+    final user = context.watch<AuthProvider>().user;
+    if (user.isPremium) return const _AlreadyPremium();
 
-    if (user.isPremium) {
-      return _buildAlreadyPremium(context);
-    }
+    final subscriptions = context.watch<SubscriptionProvider>();
 
     return Scaffold(
+      appBar: AppBar(title: const Text('Premium')),
       body: SafeArea(
+        top: false,
         child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Header gradient
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(24, 40, 24, 40),
-                decoration: const BoxDecoration(
-                  gradient: AppColors.premiumGradient,
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(32)),
-                ),
-                child: Column(
-                  children: [
-                    const Icon(Icons.bolt_rounded, color: Colors.white, size: 56)
-                        .animate()
-                        .scale(duration: 600.ms, curve: Curves.elasticOut),
-                    const SizedBox(height: 16),
-                    Text(
-                      'QuickConvert Premium',
-                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
-                      textAlign: TextAlign.center,
-                    ).animate().fadeIn(delay: 100.ms),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Convertis sans limites, sans pubs',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: Colors.white.withAlpha(215),
-                          ),
-                      textAlign: TextAlign.center,
-                    ).animate().fadeIn(delay: 200.ms),
-                  ],
-                ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Toggle mensuel/annuel
-                    _buildPlanToggle().animate().fadeIn(delay: 300.ms),
-                    const SizedBox(height: 24),
-
-                    // Prix
-                    _buildPriceCard().animate().fadeIn(delay: 400.ms),
-                    const SizedBox(height: 24),
-
-                    // Features
-                    Text(
-                      'Tout ce que tu obtiens',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ).animate().fadeIn(delay: 450.ms),
-                    const SizedBox(height: 12),
-                    ..._buildFeatures().asMap().entries.map(
-                          (e) => e.value.animate(delay: Duration(milliseconds: 500 + e.key * 60)),
-                        ),
-                    const SizedBox(height: 28),
-
-                    // CTA Button
-                    _buildPurchaseButton(context).animate().fadeIn(delay: 700.ms).slideY(begin: 0.3),
-                    const SizedBox(height: 12),
-
-                    // Restore & Terms
-                    Center(
-                      child: TextButton(
-                        onPressed: () => _restorePurchases(context),
-                        child: const Text('Restaurer mes achats'),
-                      ),
-                    ),
-                    Center(
-                      child: Text(
-                        'Annule à tout moment. Renouvellement automatique.',
-                        style: Theme.of(context).textTheme.bodySmall,
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlanToggle() {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceVariant,
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          _PlanTab(
-            label: 'Mensuel\n4,99€/mois',
-            isSelected: !_isYearly,
-            onTap: () => setState(() => _isYearly = false),
-          ),
-          _PlanTab(
-            label: 'Annuel\n2,99€/mois',
-            isSelected: _isYearly,
-            onTap: () => setState(() => _isYearly = true),
-            badge: '-40%',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPriceCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: AppColors.premiumGradient,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.premium.withAlpha(90),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _isYearly ? '24,99€/an' : '4,99€/mois',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              Text(
-                _isYearly ? 'soit 2,99€/mois — économise 40%' : 'Annulable à tout moment',
-                style: const TextStyle(color: Colors.white70, fontSize: 13),
-              ),
-            ],
-          ),
-          const Spacer(),
-          const Icon(Icons.star_rounded, color: Colors.white, size: 40),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _buildFeatures() {
-    final features = SubscriptionModel.monthly.features;
-    return features
-        .map(
-          (f) => Padding(
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Row(
+          padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.md,
+              AppSpacing.gutter, AppSpacing.xxxl),
+          child: ContentColumn(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Container(
-                  width: 28,
-                  height: 28,
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withAlpha(30),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.check_rounded, color: AppColors.success, size: 16),
+                _Hero(),
+                const SizedBox(height: AppSpacing.xxl),
+                _PlanPicker(
+                  isYearly: _isYearly,
+                  monthlyPrice: _monthlyPrice(subscriptions),
+                  yearlyPrice: _yearlyPrice(subscriptions),
+                  onChanged: (yearly) => setState(() => _isYearly = yearly),
                 ),
-                const SizedBox(width: 12),
-                Text(f, style: Theme.of(context).textTheme.bodyLarge),
+                const SizedBox(height: AppSpacing.xxl),
+                Text('Ce que ça change', style: context.texts.headlineSmall),
+                const SizedBox(height: AppSpacing.md),
+                for (final feature in SubscriptionModel.monthly.features)
+                  _FeatureRow(feature),
+                const SizedBox(height: AppSpacing.xxl),
+                _buildPurchaseButton(subscriptions),
+                const SizedBox(height: AppSpacing.sm),
+                Center(
+                  child: TextButton(
+                    onPressed: _restorePurchases,
+                    child: const Text('Restaurer mes achats'),
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    'Renouvellement automatique, annulable à tout moment '
+                    'depuis ton compte du store.',
+                    style: context.texts.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                ),
               ],
             ),
           ),
-        )
-        .toList();
-  }
-
-  Widget _buildPurchaseButton(BuildContext context) {
-    final subProvider = context.watch<SubscriptionProvider>();
-    final isLoading = subProvider.status == SubscriptionStatus.loading;
-
-    return ElevatedButton(
-      onPressed: isLoading ? null : () => _purchase(context),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.premium,
-        disabledBackgroundColor: AppColors.premium.withAlpha(150),
-        minimumSize: const Size(double.infinity, 58),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        elevation: 0,
+        ),
       ),
-      child: isLoading
-          ? const SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2.5,
-              ),
-            )
-          : Text(
-              _isYearly ? 'Démarrer le Premium Annuel' : 'Démarrer le Premium Mensuel',
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
-            ),
     );
   }
 
-  Future<void> _purchase(BuildContext context) async {
-    final authProvider = context.read<AuthProvider>();
-    final subProvider = context.read<SubscriptionProvider>();
+  // Le prix vient du store dès qu'il a répondu : c'est lui qui connaît la
+  // devise et la fiscalité de l'utilisateur, et le Play Store demande que ce
+  // soit celui-là qui s'affiche. Les constantes ne servent que d'attente.
+  String _monthlyPrice(SubscriptionProvider provider) =>
+      provider.monthlyProduct?.price ?? AppConstants.fallbackMonthlyPrice;
 
-    // Tenter l'achat réel via In-App Purchase
-    if (subProvider.isAvailable) {
-      onSuccess(DateTime expiresAt) {
-        authProvider.activatePremium(expiresAt);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('🎉 Bienvenue dans QuickConvert Premium !'),
-              backgroundColor: AppColors.premium,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          );
-        }
-      }
+  String _yearlyPrice(SubscriptionProvider provider) =>
+      provider.yearlyProduct?.price ?? AppConstants.fallbackYearlyPrice;
 
-      if (_isYearly) {
-        await subProvider.purchaseYearly(onSuccess);
+  Widget _buildPurchaseButton(SubscriptionProvider subscriptions) {
+    final isLoading = subscriptions.status == SubscriptionStatus.loading;
+
+    return ElevatedButton(
+      onPressed: isLoading ? null : _purchase,
+      child: isLoading
+          ? SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: context.colors.onPrimary,
+              ),
+            )
+          : Text(_isYearly ? 'Prendre l\'abonnement annuel' : 'Prendre l\'abonnement mensuel'),
+    );
+  }
+
+  Future<void> _purchase() async {
+    final auth = context.read<AuthProvider>();
+    final subscriptions = context.read<SubscriptionProvider>();
+
+    if (!subscriptions.isAvailable) {
+      // En débogage, on active Premium sans passer par le store pour pouvoir
+      // tester l'app. En production ce raccourci offrirait l'abonnement à
+      // quiconque ouvre la version web, où le store n'existe pas.
+      if (kDebugMode) {
+        auth.activatePremium(DateTime.now().add(
+          _isYearly ? const Duration(days: 365) : const Duration(days: 30),
+        ));
+        _notify('Premium activé (mode développement)');
       } else {
-        await subProvider.purchaseMonthly(onSuccess);
+        _notify('Les abonnements ne sont pas disponibles sur cette plateforme.');
       }
+      return;
+    }
 
-      // Si erreur IAP, montrer un message
-      if (subProvider.status == SubscriptionStatus.error && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(subProvider.error ?? 'Erreur lors de l\'achat'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
+    void onSuccess(DateTime expiresAt) {
+      auth.activatePremium(expiresAt);
+      _notify('Bienvenue dans QuickConvert Premium.');
+    }
+
+    if (_isYearly) {
+      await subscriptions.purchaseYearly(onSuccess);
     } else {
-      // Fallback mode test (store non disponible — émulateur/web)
-      final expiresAt = DateTime.now().add(
-        _isYearly ? const Duration(days: 365) : const Duration(days: 30),
-      );
-      authProvider.activatePremium(expiresAt);
+      await subscriptions.purchaseMonthly(onSuccess);
+    }
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('🎉 Premium activé (mode test)'),
-            backgroundColor: AppColors.premium,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
+    if (subscriptions.status == SubscriptionStatus.error) {
+      _notify(subscriptions.error ?? 'L\'achat n\'a pas abouti.');
     }
   }
 
-  Future<void> _restorePurchases(BuildContext context) async {
-    final subProvider = context.read<SubscriptionProvider>();
-    if (subProvider.isAvailable) {
-      await subProvider.restorePurchases();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Restauration des achats en cours...'),
-            backgroundColor: AppColors.primary,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
-    } else {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Store non disponible'),
-            backgroundColor: AppColors.textSecondary,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-        );
-      }
+  Future<void> _restorePurchases() async {
+    final subscriptions = context.read<SubscriptionProvider>();
+    if (!subscriptions.isAvailable) {
+      _notify('Aucun store disponible sur cette plateforme.');
+      return;
     }
+    await subscriptions.restorePurchases();
+    _notify('Restauration en cours…');
   }
 
-  Widget _buildAlreadyPremium(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Premium')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.verified_rounded, color: AppColors.premium, size: 80),
-            const SizedBox(height: 20),
-            Text('Tu es Premium ! 🎉', style: Theme.of(context).textTheme.displaySmall),
-            const SizedBox(height: 8),
-            Text(
-              'Profite de conversions illimitées sans pub',
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+  void _notify(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+}
+
+class _Hero extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSpacing.xxl),
+      decoration: BoxDecoration(
+        color: palette.premiumSurface,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
+        border: Border.all(color: palette.premium.withAlpha(71)),
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.bolt_rounded, size: 40, color: palette.premium),
+          const SizedBox(height: AppSpacing.md),
+          Text(
+            'Convertis sans compter',
+            style: context.texts.headlineMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            'Plus de limite quotidienne, plus de publicité.',
+            style: context.texts.bodyMedium,
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
 }
 
-class _PlanTab extends StatelessWidget {
-  final String label;
+class _PlanPicker extends StatelessWidget {
+  final bool isYearly;
+  final String monthlyPrice;
+  final String yearlyPrice;
+  final ValueChanged<bool> onChanged;
+
+  const _PlanPicker({
+    required this.isYearly,
+    required this.monthlyPrice,
+    required this.yearlyPrice,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _PlanOption(
+          title: 'Annuel',
+          price: yearlyPrice,
+          period: 'par an',
+          badge: 'Le plus avantageux',
+          isSelected: isYearly,
+          onTap: () => onChanged(true),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _PlanOption(
+          title: 'Mensuel',
+          price: monthlyPrice,
+          period: 'par mois',
+          isSelected: !isYearly,
+          onTap: () => onChanged(false),
+        ),
+      ],
+    );
+  }
+}
+
+class _PlanOption extends StatelessWidget {
+  final String title;
+  final String price;
+  final String period;
+  final String? badge;
   final bool isSelected;
   final VoidCallback onTap;
-  final String? badge;
 
-  const _PlanTab({
-    required this.label,
+  const _PlanOption({
+    required this.title,
+    required this.price,
+    required this.period,
     required this.isSelected,
     required this.onTap,
     this.badge,
@@ -362,48 +243,128 @@ class _PlanTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: AppConstants.shortAnim,
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.surface : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: isSelected
-                ? [BoxShadow(color: AppColors.shadow, blurRadius: 8, offset: const Offset(0, 2))]
-                : [],
-          ),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
-                  height: 1.4,
-                ),
+    final colors = context.colors;
+    final palette = context.palette;
+
+    return Semantics(
+      button: true,
+      selected: isSelected,
+      label: 'Abonnement $title, $price $period',
+      excludeSemantics: true,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: AnimatedContainer(
+            duration: AppDuration.fast,
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            decoration: BoxDecoration(
+              color: isSelected ? colors.primaryContainer : colors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(
+                color: isSelected ? colors.primary : palette.border,
+                width: isSelected ? 1.5 : 1,
               ),
-              if (badge != null)
-                Positioned(
-                  top: 0,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.success,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      badge!,
-                      style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w700),
-                    ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  isSelected
+                      ? Icons.radio_button_checked_rounded
+                      : Icons.radio_button_unchecked_rounded,
+                  color: isSelected ? colors.primary : palette.textMuted,
+                  size: 22,
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(title, style: context.texts.titleLarge),
+                          if (badge != null) ...[
+                            const SizedBox(width: AppSpacing.sm),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.sm, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: palette.success.withAlpha(38),
+                                borderRadius: BorderRadius.circular(AppRadius.pill),
+                              ),
+                              child: Text(
+                                badge!,
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: palette.success,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xxs),
+                      Text(period, style: context.texts.bodySmall),
+                    ],
                   ),
                 ),
+                Text(price, style: context.texts.headlineSmall),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FeatureRow extends StatelessWidget {
+  final String label;
+  const _FeatureRow(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Row(
+        children: [
+          Icon(Icons.check_circle_rounded, size: 20, color: palette.success),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(child: Text(label, style: context.texts.bodyLarge)),
+        ],
+      ),
+    );
+  }
+}
+
+class _AlreadyPremium extends StatelessWidget {
+  const _AlreadyPremium();
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = context.palette;
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Premium')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxxl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.verified_rounded, color: palette.premium, size: 64),
+              const SizedBox(height: AppSpacing.xl),
+              Text('Tu es Premium', style: context.texts.headlineMedium),
+              const SizedBox(height: AppSpacing.sm),
+              Text(
+                'Conversions illimitées, sans publicité.',
+                style: context.texts.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
             ],
           ),
         ),

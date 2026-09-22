@@ -1,8 +1,14 @@
+import '../core/constants.dart';
+
 class UserModel {
   final String? id;
   final String? email;
   final bool isPremium;
+
+  /// Conversions réussies aujourd'hui, relues depuis l'historique persisté
+  /// par `AuthProvider.refreshQuota()`.
   final int conversionsToday;
+
   final DateTime? premiumExpiresAt;
   final DateTime createdAt;
 
@@ -15,10 +21,15 @@ class UserModel {
     required this.createdAt,
   });
 
-  bool get canConvert => isPremium || conversionsToday < 5;
+  bool get canConvert =>
+      isPremium || conversionsToday < AppConstants.freeConversionsPerDay;
 
-  int get remainingConversions =>
-      isPremium ? -1 : (5 - conversionsToday).clamp(0, 5);
+  /// Conversions gratuites restantes. `-1` pour un compte Premium, qui n'a
+  /// pas de limite.
+  int get remainingConversions => isPremium
+      ? -1
+      : (AppConstants.freeConversionsPerDay - conversionsToday)
+          .clamp(0, AppConstants.freeConversionsPerDay);
 
   UserModel copyWith({
     String? id,

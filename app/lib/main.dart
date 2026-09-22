@@ -10,18 +10,20 @@ import 'app.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // ── Orientation portrait uniquement ──────────────────────────────────────
+  // ── Orientations ──────────────────────────────────────────────────────────
+  // Le paysage est autorisé : la mise en page s'y adapte maintenant, avec un
+  // rail latéral au lieu de la barre du bas dès que l'écran est large.
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
+    DeviceOrientation.landscapeLeft,
+    DeviceOrientation.landscapeRight,
   ]);
 
-  // ── Status bar transparente ────────────────────────────────────────────────
+  // La couleur des icônes de la barre d'état suit le thème, via
+  // `AppBarTheme.systemOverlayStyle` — elle n'est plus figée en sombre ici.
   SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-    ),
+    const SystemUiOverlayStyle(statusBarColor: Colors.transparent),
   );
 
   // ── Hive (base de données locale) ─────────────────────────────────────────
@@ -30,16 +32,9 @@ Future<void> main() async {
   await Hive.openBox<ConversionRecord>(AppConstants.historyBox);
   await Hive.openBox(AppConstants.settingsBox);
 
-  // ── Supabase ── DÉSACTIVÉ TEMPORAIREMENT POUR LES TESTS ─────────────────
-  // try {
-  //   await Supabase.initialize(
-  //     url: AppConstants.supabaseUrl,
-  //     anonKey: AppConstants.supabaseAnonKey,
-  //     debug: false,
-  //   );
-  // } catch (e) {
-  //   debugPrint('Supabase init error: $e');
-  // }
+  // ── Supabase ── DÉSACTIVÉ TEMPORAIREMENT ─────────────────────────────────
+  // Voir AppConstants.authEnabled : tant que c'est false, l'interface ne
+  // propose pas de créer un compte.
 
   // ── AdMob ─────────────────────────────────────────────────────────────────
   try {
@@ -48,6 +43,5 @@ Future<void> main() async {
     debugPrint('AdMob init error: $e');
   }
 
-  // ── Lancement ─────────────────────────────────────────────────────────────
   runApp(const QuickConvertApp());
 }

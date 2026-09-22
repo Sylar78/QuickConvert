@@ -1,12 +1,14 @@
 import 'package:flutter/foundation.dart';
 // import 'package:supabase_flutter/supabase_flutter.dart'; // AUTH DÉSACTIVÉE
+
 import '../models/models.dart';
-// import '../services/services.dart'; // AUTH DÉSACTIVÉE
+import '../services/services.dart';
 
 enum AuthState { unknown, authenticated, unauthenticated }
 
 class AuthProvider extends ChangeNotifier {
   // final SupabaseService _supabase = SupabaseService(); // AUTH DÉSACTIVÉE
+  final HistoryService _historyService = HistoryService();
 
   AuthState _authState = AuthState.unknown;
   UserModel _user = UserModel.guest();
@@ -22,62 +24,53 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void _init() {
-    // Auth temporairement désactivée — l'utilisateur démarre en mode invité
+    // Auth temporairement désactivée — l'utilisateur démarre en mode invité.
     _authState = AuthState.unauthenticated;
     _user = UserModel.guest();
+    refreshQuota();
 
-    // TODO: réactiver quand Supabase est correctement configuré
-    // try {
-    //   _supabase.authStateChanges.listen((data) async {
-    //     final supaUser = data.session?.user;
-    //     if (supaUser != null) {
-    //       _authState = AuthState.authenticated;
-    //       final profile = await _supabase.getUserProfile();
-    //       _user = profile ?? UserModel(
-    //         id: supaUser.id,
-    //         email: supaUser.email,
-    //         createdAt: DateTime.now(),
-    //       );
-    //     } else {
-    //       _authState = AuthState.unauthenticated;
-    //       _user = UserModel.guest();
-    //     }
-    //     notifyListeners();
-    //   });
-    // } catch (e) {
-    //   debugPrint('Auth init error: $e');
-    //   _authState = AuthState.unauthenticated;
-    // }
+    // TODO: réactiver quand Supabase est correctement configuré,
+    // et repasser AppConstants.authEnabled à true.
   }
 
-  // AUTH DÉSACTIVÉE — toutes les méthodes sont des no-ops pour les tests
+  /// Relit le quota du jour depuis l'historique persisté.
+  ///
+  /// C'est la seule source de vérité : c'est elle que
+  /// [ConversionProvider] consulte pour autoriser ou refuser une conversion.
+  /// Avant, l'écran d'accueil affichait un compteur gardé uniquement en
+  /// mémoire, qui repartait à zéro au lancement pendant que la limite réelle,
+  /// elle, tenait toujours — l'app annonçait « 5 conversions restantes » puis
+  /// refusait de convertir.
+  void refreshQuota() {
+    final used = _historyService.todayCount;
+    if (used == _user.conversionsToday) return;
+    _user = _user.copyWith(conversionsToday: used);
+    notifyListeners();
+  }
+
+  // AUTH DÉSACTIVÉE — les méthodes de compte sont des no-ops.
 
   Future<bool> signUp(String email, String password) async {
-    // TODO: réactiver avec Supabase
-    _error = 'Inscription désactivée en mode test';
+    _error = 'La création de compte arrive bientôt.';
     notifyListeners();
     return false;
   }
 
   Future<bool> signIn(String email, String password) async {
-    // TODO: réactiver avec Supabase
-    _error = 'Connexion désactivée en mode test';
+    _error = 'La connexion arrive bientôt.';
     notifyListeners();
     return false;
   }
 
   Future<void> signOut() async {
-    // TODO: réactiver avec Supabase
-  }
-
-  void incrementConversions() {
-    _user = _user.copyWith(conversionsToday: _user.conversionsToday + 1);
+    _authState = AuthState.unauthenticated;
+    _user = UserModel.guest();
+    refreshQuota();
     notifyListeners();
   }
 
   void activatePremium(DateTime expiresAt) {
     _user = _user.copyWith(isPremium: true, premiumExpiresAt: expiresAt);
-    // TODO: réactiver avec Supabase
     notifyListeners();
   }
 

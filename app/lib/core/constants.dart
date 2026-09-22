@@ -3,16 +3,32 @@
 // ============================================================
 
 class AppConstants {
+  const AppConstants._();
+
   // App info
   static const String appName = 'QuickConvert';
   static const String appTagline = 'Convertis tes fichiers instantanément';
+  static const String siteUrl = 'https://quickconvert.app';
 
   // Supabase
   static const String supabaseUrl = 'https://buuwdmnmjmbaipvxmmoo.supabase.co';
   static const String supabaseAnonKey = 'sb_publishable_7qF9ev0PiiNnVJkjgjrwew_JDGv39Px';
 
-  // Backend API
-  static const String backendUrl = 'http://localhost:3000';
+  /// Comptes et synchronisation. Supabase est commenté dans `main.dart` et
+  /// `auth_provider.dart` ; tant que c'est le cas, l'interface ne propose pas
+  /// de se connecter plutôt que d'ouvrir un écran qui refuse.
+  static const bool authEnabled = false;
+
+  /// URL du service de conversion cloud, fournie au build :
+  ///   flutter build web --dart-define=QC_BACKEND_URL=https://api.example.com
+  ///
+  /// Vide par défaut : les conversions qui en dépendent (DOC → PDF) annoncent
+  /// alors clairement qu'elles sont indisponibles, au lieu d'appeler
+  /// `localhost` depuis le téléphone de l'utilisateur.
+  static const String backendUrl =
+      String.fromEnvironment('QC_BACKEND_URL', defaultValue: '');
+
+  static bool get hasBackend => backendUrl.isNotEmpty;
 
   // AdMob IDs (test IDs by default — replace with real ones in production)
   static const String admobBannerIdAndroid = 'ca-app-pub-6336563192834287~9992114041';
@@ -24,6 +40,12 @@ class AppConstants {
   static const String premiumMonthlyId = 'quickconvert_premium_monthly';
   static const String premiumYearlyId = 'quickconvert_premium_yearly';
 
+  /// Prix affichés quand le store n'a pas encore répondu. Dès que
+  /// `in_app_purchase` a chargé les produits, c'est son prix localisé qui
+  /// s'affiche — c'est ce que demandent les règles du Play Store.
+  static const String fallbackMonthlyPrice = '4,99 €';
+  static const String fallbackYearlyPrice = '24,99 €';
+
   // Free tier limits
   static const int freeConversionsPerDay = 5;
 
@@ -32,16 +54,10 @@ class AppConstants {
   static const String settingsBox = 'settings';
   static const String userBox = 'user';
 
-  // Supported formats
-  static const List<String> pdfExtensions = ['pdf'];
-  static const List<String> imageExtensions = ['jpg', 'jpeg', 'png'];
-  static const List<String> docExtensions = ['doc', 'docx'];
+  /// Nombre de conversions gardées dans l'historique local.
+  static const int historyLimit = 50;
 
   // Max file size (bytes) — 50 MB
   static const int maxFileSizeBytes = 50 * 1024 * 1024;
-
-  // Animation durations
-  static const Duration shortAnim = Duration(milliseconds: 200);
-  static const Duration mediumAnim = Duration(milliseconds: 400);
-  static const Duration longAnim = Duration(milliseconds: 700);
+  static const String maxFileSizeLabel = '50 Mo';
 }

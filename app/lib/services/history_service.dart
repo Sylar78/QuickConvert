@@ -19,10 +19,9 @@ class HistoryService {
   Future<void> add(ConversionRecord record) async {
     await _box.put(record.id, record);
 
-    // Garder seulement les 50 dernières conversions
-    if (_box.length > 50) {
-      final keys = _box.keys.toList();
-      await _box.delete(keys.first);
+    // On ne garde que les dernières conversions, la plus ancienne sort.
+    while (_box.length > AppConstants.historyLimit) {
+      await _box.delete(_box.keys.first);
     }
   }
 

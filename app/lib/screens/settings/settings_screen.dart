@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/core.dart';
 import '../../providers/providers.dart';
@@ -23,143 +24,204 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadVersion() async {
-    final info = await PackageInfo.fromPlatform();
-    setState(() => _version = '${info.version} (${info.buildNumber})');
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() => _version = '${info.version} (${info.buildNumber})');
+      }
+    } catch (_) {
+      // Pas d'info de paquet sur certaines cibles : on n'affiche rien.
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final user = authProvider.user;
+    final auth = context.watch<AuthProvider>();
+    final themeProvider = context.watch<ThemeProvider>();
+    final user = auth.user;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Réglages')),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          // Profil
-          _SectionHeader(title: 'Compte'),
-          _SettingsTile(
-            icon: Icons.person_rounded,
-            title: user.email ?? 'Invité',
-            subtitle: user.isPremium ? 'Compte Premium ✨' : 'Compte gratuit — 5 conversions/jour',
-            color: AppColors.primary,
-          ),
-          if (!authProvider.isAuthenticated)
-            _SettingsTile(
-              icon: Icons.login_rounded,
-              title: 'Se connecter / S\'inscrire',
-              subtitle: 'Synchronise ton historique',
-              color: AppColors.accent,
-              onTap: () => Navigator.pushNamed(context, '/auth'),
-            ),
-          if (authProvider.isAuthenticated)
-            _SettingsTile(
-              icon: Icons.logout_rounded,
-              title: 'Se déconnecter',
-              color: AppColors.error,
-              onTap: () => authProvider.signOut(),
-            ),
+      body: SafeArea(
+        top: false,
+        child: ContentColumn(
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(AppSpacing.gutter, AppSpacing.md,
+                AppSpacing.gutter, AppSpacing.xxxl),
+            children: [
+              const _SectionHeader('Compte'),
+              _SettingsTile(
+                icon: user.isPremium
+                    ? Icons.workspace_premium_rounded
+                    : Icons.person_rounded,
+                title: user.email ?? 'Mode invité',
+                subtitle: user.isPremium
+                    ? 'Conversions illimitées'
+                    : '${AppConstants.freeConversionsPerDay} conversions par jour',
+                color: user.isPremium
+                    ? context.palette.premium
+                    : context.colors.primary,
+              ),
+              // Tant que Supabase est désactivé, l'app ne propose pas une
+              // connexion qui se solderait par un refus.
+              if (AppConstants.authEnabled && !auth.isAuthenticated)
+                _SettingsTile(
+                  icon: Icons.login_rounded,
+                  title: 'Se connecter',
+                  subtitle: 'Retrouve ton historique sur tous tes appareils',
+                  onTap: () => Navigator.pushNamed(context, '/auth'),
+                ),
+              if (AppConstants.authEnabled && auth.isAuthenticated)
+                _SettingsTile(
+                  icon: Icons.logout_rounded,
+                  title: 'Se déconnecter',
+                  color: context.colors.error,
+                  onTap: auth.signOut,
+                ),
 
-          const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.xl),
+              const _SectionHeader('Apparence'),
+              _SettingsTile(
+                icon: switch (themeProvider.mode) {
+                  ThemeMode.light => Icons.light_mode_rounded,
+                  ThemeMode.dark => Icons.dark_mode_rounded,
+                  ThemeMode.system => Icons.brightness_auto_rounded,
+                },
+                title: 'Thème',
+                subtitle: themeProvider.label,
+                onTap: () => _chooseTheme(themeProvider),
+              ),
 
-          // Premium
-          if (!user.isPremium) ...[
-            _SectionHeader(title: 'Premium'),
-            _SettingsTile(
-              icon: Icons.bolt_rounded,
-              title: 'Passer à Premium',
-              subtitle: '2,99€/mois — Conversions illimitées',
-              color: AppColors.premium,
-              onTap: () => Navigator.pushNamed(context, '/premium'),
-            ),
-            const SizedBox(height: 20),
-          ],
-
-          // Support
-          _SectionHeader(title: 'Support'),
-          _SettingsTile(
-            icon: Icons.star_rounded,
-            title: 'Noter l\'application',
-            subtitle: 'Ça nous aide beaucoup !',
-            color: AppColors.premium,
-            onTap: () => _launchUrl('https://apps.apple.com/app/quickconvert'),
-          ),
-          _SettingsTile(
-            icon: Icons.share_rounded,
-            title: 'Partager QuickConvert',
-            color: AppColors.primary,
-            onTap: () {},
-          ),
-          _SettingsTile(
-            icon: Icons.mail_rounded,
-            title: 'Contacter le support',
-            color: AppColors.accent,
-            onTap: () => _launchUrl('mailto:support@quickconvert.app'),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Légal
-          _SectionHeader(title: 'Légal'),
-          _SettingsTile(
-            icon: Icons.privacy_tip_rounded,
-            title: 'Politique de confidentialité',
-            onTap: () => _launchUrl('https://quickconvert.app/privacy'),
-          ),
-          _SettingsTile(
-            icon: Icons.gavel_rounded,
-            title: 'Conditions d\'utilisation',
-            onTap: () => _launchUrl('https://quickconvert.app/terms'),
-          ),
-
-          // Bannière publicitaire
-          if (!user.isPremium)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: AdBannerContainer(),
-            ),
-
-          const SizedBox(height: 20),
-
-          // Version
-          Center(
-            child: Column(
-              children: [
-                const Text('QuickConvert', style: TextStyle(fontWeight: FontWeight.w700, color: AppColors.primary, fontSize: 16)),
-                Text('Version $_version', style: const TextStyle(color: AppColors.textHint, fontSize: 12)),
-                const SizedBox(height: 4),
-                const Text('Made with ❤️', style: TextStyle(color: AppColors.textHint, fontSize: 12)),
+              if (!user.isPremium) ...[
+                const SizedBox(height: AppSpacing.xl),
+                const _SectionHeader('Premium'),
+                _SettingsTile(
+                  icon: Icons.bolt_rounded,
+                  title: 'Passer à Premium',
+                  subtitle: 'Conversions illimitées, sans publicité',
+                  color: context.palette.premium,
+                  onTap: () => Navigator.pushNamed(context, '/premium'),
+                ),
               ],
-            ),
+
+              const SizedBox(height: AppSpacing.xl),
+              const _SectionHeader('Support'),
+              _SettingsTile(
+                icon: Icons.star_rounded,
+                title: 'Noter l\'application',
+                color: context.palette.premium,
+                onTap: () => _launch('${AppConstants.siteUrl}/noter'),
+              ),
+              _SettingsTile(
+                icon: Icons.ios_share_rounded,
+                title: 'Partager QuickConvert',
+                onTap: _shareApp,
+              ),
+              _SettingsTile(
+                icon: Icons.mail_rounded,
+                title: 'Contacter le support',
+                onTap: () => _launch('mailto:support@quickconvert.app'),
+              ),
+
+              const SizedBox(height: AppSpacing.xl),
+              const _SectionHeader('Légal'),
+              _SettingsTile(
+                icon: Icons.privacy_tip_rounded,
+                title: 'Politique de confidentialité',
+                onTap: () => _launch('${AppConstants.siteUrl}/privacy'),
+              ),
+              _SettingsTile(
+                icon: Icons.gavel_rounded,
+                title: 'Conditions d\'utilisation',
+                onTap: () => _launch('${AppConstants.siteUrl}/terms'),
+              ),
+
+              if (!user.isPremium) ...[
+                const SizedBox(height: AppSpacing.xl),
+                const AdBannerContainer(),
+              ],
+
+              const SizedBox(height: AppSpacing.xxl),
+              Center(
+                child: Column(
+                  children: [
+                    Text(AppConstants.appName, style: context.texts.titleSmall),
+                    if (_version.isNotEmpty)
+                      Text('Version $_version', style: context.texts.labelSmall),
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
-        ],
+        ),
       ),
     );
   }
 
-  Future<void> _launchUrl(String url) async {
+  Future<void> _chooseTheme(ThemeProvider provider) async {
+    final choice = await showModalBottomSheet<ThemeMode>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: AppSpacing.md),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Thème', style: context.texts.headlineSmall),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            for (final mode in ThemeMode.values)
+              RadioListTile<ThemeMode>(
+                value: mode,
+                groupValue: provider.mode,
+                onChanged: (value) => Navigator.pop(sheetContext, value),
+                title: Text(switch (mode) {
+                  ThemeMode.system => 'Comme le système',
+                  ThemeMode.light => 'Clair',
+                  ThemeMode.dark => 'Sombre',
+                }),
+              ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+        ),
+      ),
+    );
+
+    if (choice != null) await provider.setMode(choice);
+  }
+
+  Future<void> _shareApp() async {
+    await Share.share(
+      'QuickConvert — convertis tes fichiers en deux gestes : '
+      '${AppConstants.siteUrl}',
+      subject: AppConstants.appName,
+    );
+  }
+
+  Future<void> _launch(String url) async {
     final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) await launchUrl(uri);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 }
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-  const _SectionHeader({required this.title});
+  const _SectionHeader(this.title);
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(
+          left: AppSpacing.xs, bottom: AppSpacing.sm, top: AppSpacing.xs),
       child: Text(
-        title,
-        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-              color: AppColors.textSecondary,
-              letterSpacing: 0.5,
-              fontSize: 12,
-            ),
+        title.toUpperCase(),
+        style: context.texts.labelSmall?.copyWith(letterSpacing: 0.8),
       ),
     );
   }
@@ -182,32 +244,53 @@ class _SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(color: AppColors.shadow, blurRadius: 6, offset: const Offset(0, 2)),
-        ],
-      ),
-      child: ListTile(
-        onTap: onTap,
-        leading: Container(
-          width: 38,
-          height: 38,
-          decoration: BoxDecoration(
-            color: (color ?? AppColors.textSecondary).withAlpha(25),
-            borderRadius: BorderRadius.circular(10),
+    final palette = context.palette;
+    final accent = color ?? context.colors.onSurfaceVariant;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Material(
+        color: context.colors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: palette.border),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: accent.withAlpha(31),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                  child: Icon(icon, color: accent, size: 19),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: context.texts.titleMedium),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: AppSpacing.xxs),
+                        Text(subtitle!, style: context.texts.bodySmall),
+                      ],
+                    ],
+                  ),
+                ),
+                if (onTap != null)
+                  Icon(Icons.chevron_right_rounded, color: palette.textMuted),
+              ],
+            ),
           ),
-          child: Icon(icon, color: color ?? AppColors.textSecondary, size: 20),
         ),
-        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 15)),
-        subtitle: subtitle != null ? Text(subtitle!, style: const TextStyle(fontSize: 12)) : null,
-        trailing: onTap != null
-            ? const Icon(Icons.chevron_right_rounded, color: AppColors.textHint)
-            : null,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       ),
     );
   }

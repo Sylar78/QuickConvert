@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/core.dart';
 import '../../providers/providers.dart';
+import '../../widgets/widgets.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -47,10 +48,7 @@ class _AuthScreenState extends State<AuthScreen> {
       Navigator.pop(context);
     } else if (authProvider.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(authProvider.error!),
-          backgroundColor: AppColors.error,
-        ),
+        SnackBar(content: Text(authProvider.error!)),
       );
     }
   }
@@ -63,8 +61,9 @@ class _AuthScreenState extends State<AuthScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Form(
+          padding: const EdgeInsets.all(AppSpacing.gutter),
+          child: ContentColumn(
+            child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,11 +123,11 @@ class _AuthScreenState extends State<AuthScreen> {
                 ElevatedButton(
                   onPressed: _isLoading ? null : _submit,
                   child: _isLoading
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 24,
                           height: 24,
                           child: CircularProgressIndicator(
-                            color: Colors.white,
+                            color: context.colors.onPrimary,
                             strokeWidth: 2.5,
                           ),
                         )
@@ -149,8 +148,8 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                           TextSpan(
                             text: _isLogin ? 'S\'inscrire' : 'Se connecter',
-                            style: const TextStyle(
-                              color: AppColors.primary,
+                            style: TextStyle(
+                              color: context.colors.primary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -160,6 +159,7 @@ class _AuthScreenState extends State<AuthScreen> {
                   ),
                 ),
               ],
+            ),
             ),
           ),
         ),

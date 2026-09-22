@@ -1,12 +1,12 @@
 {
-    "name": "quick_convert",
-    "short_name": "quick_convert",
+    "name": "QuickConvert",
+    "short_name": "QuickConvert",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "background_color": "#F7F8FC",
+    "theme_color": "#5A4FE0",
+    "description": "Convertis tes fichiers PDF, JPG, PNG, DOC et SVG en deux gestes, depuis ton navigateur ou ton téléphone.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

@@ -1,12 +1,14 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
+import '../core/constants.dart';
 import '../models/models.dart';
 import '../services/services.dart';
-import '../core/constants.dart';
 
 enum ConversionState { idle, loading, success, error }
+
+/// Le résultat d'une conversion, quelle que soit la plateforme.
+/// Sur mobile [names] contient des chemins de fichiers et [bytes] est vide ;
+/// sur le web [names] contient des noms de fichiers et [bytes] leur contenu.
+typedef _Output = ({List<String> names, List<Uint8List> bytes});
 
 class ConversionProvider extends ChangeNotifier {
   final ConversionService _conversionService = ConversionService();
@@ -20,6 +22,12 @@ class ConversionProvider extends ChangeNotifier {
   double _progress = 0.0;
   List<ConversionRecord> _history = [];
 
+  ConversionProvider() {
+    // L'historique alimente l'aperçu « Dernières conversions » de l'écran de
+    // conversion, qui est visible avant que l'onglet Historique ne soit ouvert.
+    _history = _historyService.getAll();
+  }
+
   ConversionState get state => _state;
   List<String> get outputPaths => _outputPaths;
   List<Uint8List> get outputBytes => _outputBytes;
@@ -32,135 +40,211 @@ class ConversionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Lance une conversion.
+  ///
+  /// Une seule méthode pour les deux plateformes : le contrôle du quota, la
+  /// vérification de taille, l'écriture dans l'historique, la publicité et la
+  /// gestion d'erreur sont communs, et seul le cœur du travail
+  /// ([_runOnFiles] / [_runOnBytes]) diffère. Auparavant, `convert` et
+  /// `convertFromBytes` répétaient ces cent soixante-dix lignes chacune de leur
+  /// côté, avec le risque de ne corriger un bug que dans une des deux.
   Future<void> convert({
     required ConversionType type,
-    required List<String> inputPaths,
+    required List<SourceFile> files,
     required bool isPremium,
     int quality = 90,
   }) async {
-    if (inputPaths.isEmpty) return;
+    if (files.isEmpty) return;
 
-    // Vérifier la limite quotidienne
-    if (!isPremium && _historyService.todayCount >= AppConstants.freeConversionsPerDay) {
-      _state = ConversionState.error;
-      _errorMessage = 'Tu as atteint ta limite de ${AppConstants.freeConversionsPerDay} conversions aujourd\'hui.\nPasse à Premium pour des conversions illimitées !';
-      notifyListeners();
+    if (!isPremium &&
+        _historyService.todayCount >= AppConstants.freeConversionsPerDay) {
+      _fail(
+        'Tu as utilisé tes ${AppConstants.freeConversionsPerDay} conversions '
+        'gratuites du jour. Passe à Premium pour continuer sans limite.',
+      );
+      return;
+    }
+
+    final oversized = files.firstWhereOrNull(
+      (f) => f.sizeBytes > AppConstants.maxFileSizeBytes,
+    );
+    if (oversized != null) {
+      _fail(
+        '« ${oversized.name} » dépasse ${AppConstants.maxFileSizeLabel}. '
+        'Choisis un fichier plus léger.',
+      );
       return;
     }
 
     _state = ConversionState.loading;
     _outputPaths = [];
+    _outputBytes = [];
     _errorMessage = null;
     _progress = 0.0;
     notifyListeners();
 
     final id = _conversionService.generateConversionId();
-    int inputSize = 0;
-    String inputFileName = inputPaths.first.split('/').last;
-    if (!kIsWeb) {
-      try {
-        final inputFile = File(inputPaths.first);
-        inputSize = await inputFile.length();
-        inputFileName = inputFile.path.split('/').last;
-
-        // Validate file size
-        if (inputSize > AppConstants.maxFileSizeBytes) {
-          _state = ConversionState.error;
-          _errorMessage = 'Le fichier est trop volumineux (max 50 MB).';
-          notifyListeners();
-          return;
-        }
-      } catch (_) {}
-    }
+    final source = files.first;
 
     try {
-      List<String> results = [];
-
-      switch (type) {
-        case ConversionType.pdfToJpg:
-          _setProgress(0.2);
-          results = await _conversionService.pdfToJpg(inputPaths.first);
-          break;
-
-        case ConversionType.jpgToPdf:
-        case ConversionType.pngToPdf:
-          _setProgress(0.3);
-          final pdfPath = await _conversionService.imagesToPdf(inputPaths);
-          results = [pdfPath];
-          break;
-
-        case ConversionType.pngToJpg:
-          _setProgress(0.3);
-          final jpgPath = await _conversionService.pngToJpg(inputPaths.first, quality: quality);
-          results = [jpgPath];
-          break;
-
-        case ConversionType.jpgToPng:
-          _setProgress(0.3);
-          final pngPath = await _conversionService.jpgToPng(inputPaths.first);
-          results = [pngPath];
-          break;
-
-        case ConversionType.docToPdf:
-          _setProgress(0.5);
-          final pdfPath = await _conversionService.docToPdf(inputPaths.first);
-          results = [pdfPath];
-          break;
-
-        case ConversionType.svgToPng:
-          _setProgress(0.3);
-          final pngPath = await _conversionService.svgToPng(inputPaths.first);
-          results = [pngPath];
-          break;
-      }
-
+      _setProgress(0.25);
+      final output = kIsWeb
+          ? await _runOnBytes(type, files, quality)
+          : await _runOnFiles(type, files, quality);
       _setProgress(0.9);
 
-      final outputSize = results.isNotEmpty
-          ? await _conversionService.getFileSize(results.first)
-          : null;
+      _outputPaths = output.names;
+      _outputBytes = output.bytes;
 
-      // Sauvegarder dans l'historique
-      final record = ConversionRecord(
+      final outputSize = output.bytes.isNotEmpty
+          ? output.bytes.first.length
+          : (output.names.isNotEmpty
+              ? await _conversionService.getFileSize(output.names.first)
+              : null);
+
+      await _record(
         id: id,
-        typeIndex: type.index.toString(),
-        inputFileName: inputFileName,
-        outputFilePath: results.isNotEmpty ? results.first : null,
-        createdAt: DateTime.now(),
-        inputFileSizeBytes: inputSize,
-        outputFileSizeBytes: outputSize,
+        type: type,
+        source: source,
+        outputPath: output.names.isNotEmpty ? output.names.first : null,
+        outputSize: outputSize,
         isSuccess: true,
       );
-      await _historyService.add(record);
-      _history = _historyService.getAll();
 
-      _outputPaths = results;
       _state = ConversionState.success;
       _setProgress(1.0);
 
-      // Montrer une pub interstitielle pour les utilisateurs gratuits
       if (!isPremium) {
         await _adService.showInterstitial();
       }
     } catch (e) {
-      // Sauvegarder l'échec dans l'historique
-      final record = ConversionRecord(
+      await _record(
         id: id,
-        typeIndex: type.index.toString(),
-        inputFileName: inputFileName,
-        createdAt: DateTime.now(),
-        inputFileSizeBytes: inputSize,
+        type: type,
+        source: source,
         isSuccess: false,
         errorMessage: e.toString(),
       );
-      await _historyService.add(record);
-      _history = _historyService.getAll();
 
       _state = ConversionState.error;
-      _errorMessage = 'Une erreur est survenue lors de la conversion.\n${e.toString()}';
+      _errorMessage = _readableError(e);
       debugPrint('Conversion error: $e');
     }
 
+    notifyListeners();
+  }
+
+  // ─── Cœur de la conversion, par plateforme ────────────────────────────────
+
+  Future<_Output> _runOnFiles(
+    ConversionType type,
+    List<SourceFile> files,
+    int quality,
+  ) async {
+    final paths = files.map((f) => f.path!).toList();
+
+    final names = switch (type) {
+      ConversionType.pdfToJpg => await _conversionService.pdfToJpg(paths.first),
+      ConversionType.jpgToPdf ||
+      ConversionType.pngToPdf =>
+        [await _conversionService.imagesToPdf(paths)],
+      ConversionType.pngToJpg =>
+        [await _conversionService.pngToJpg(paths.first, quality: quality)],
+      ConversionType.jpgToPng => [await _conversionService.jpgToPng(paths.first)],
+      ConversionType.docToPdf => [await _conversionService.docToPdf(paths.first)],
+      ConversionType.svgToPng => [await _conversionService.svgToPng(paths.first)],
+    };
+
+    return (names: names, bytes: const <Uint8List>[]);
+  }
+
+  Future<_Output> _runOnBytes(
+    ConversionType type,
+    List<SourceFile> files,
+    int quality,
+  ) async {
+    final first = files.first;
+    final firstBytes = first.bytes!;
+
+    switch (type) {
+      case ConversionType.pdfToJpg:
+        final pages = await _conversionService.pdfToJpgBytes(firstBytes);
+        return (
+          names: [
+            for (int i = 0; i < pages.length; i++)
+              '${_stem(first.name)}_page_${i + 1}.jpg',
+          ],
+          bytes: pages,
+        );
+
+      case ConversionType.jpgToPdf:
+      case ConversionType.pngToPdf:
+        final pdf = await _conversionService
+            .imagesToPdfBytes(files.map((f) => f.bytes!).toList());
+        return (names: ['${_stem(first.name)}.pdf'], bytes: [pdf]);
+
+      case ConversionType.pngToJpg:
+        final jpg = await _conversionService
+            .imageFormatBytes(firstBytes, toPng: false, quality: quality);
+        return (names: ['${_stem(first.name)}.jpg'], bytes: [jpg]);
+
+      case ConversionType.jpgToPng:
+        final png =
+            await _conversionService.imageFormatBytes(firstBytes, toPng: true);
+        return (names: ['${_stem(first.name)}.png'], bytes: [png]);
+
+      case ConversionType.docToPdf:
+        final pdf = await _conversionService.docToPdfBytes(firstBytes, first.name);
+        return (names: ['${_stem(first.name)}.pdf'], bytes: [pdf]);
+
+      case ConversionType.svgToPng:
+        final png = await _conversionService.svgToPngBytes(firstBytes);
+        return (names: ['${_stem(first.name)}.png'], bytes: [png]);
+    }
+  }
+
+  // ─── Historique ───────────────────────────────────────────────────────────
+
+  Future<void> _record({
+    required String id,
+    required ConversionType type,
+    required SourceFile source,
+    String? outputPath,
+    int? outputSize,
+    required bool isSuccess,
+    String? errorMessage,
+  }) async {
+    await _historyService.add(ConversionRecord(
+      id: id,
+      typeIndex: type.index.toString(),
+      inputFileName: source.name,
+      outputFilePath: outputPath,
+      createdAt: DateTime.now(),
+      inputFileSizeBytes: source.sizeBytes,
+      outputFileSizeBytes: outputSize,
+      isSuccess: isSuccess,
+      errorMessage: errorMessage,
+    ));
+    _history = _historyService.getAll();
+  }
+
+  Future<void> deleteHistoryItem(String id) async {
+    await _historyService.delete(id);
+    _history = _historyService.getAll();
+    notifyListeners();
+  }
+
+  Future<void> clearHistory() async {
+    await _historyService.clearAll();
+    _history = [];
+    notifyListeners();
+  }
+
+  // ─── État ─────────────────────────────────────────────────────────────────
+
+  void _fail(String message) {
+    _state = ConversionState.error;
+    _errorMessage = message;
     notifyListeners();
   }
 
@@ -178,171 +262,24 @@ class ConversionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> deleteHistoryItem(String id) async {
-    await _historyService.delete(id);
-    _history = _historyService.getAll();
-    notifyListeners();
+  /// Un message lisible : les [ConversionException] en portent déjà un, le
+  /// reste est une erreur technique qu'on ne montre pas telle quelle.
+  String _readableError(Object error) {
+    if (error is ConversionException) return error.message;
+    return 'La conversion a échoué. Réessaie avec un autre fichier.';
   }
 
-  Future<void> clearHistory() async {
-    await _historyService.clearAll();
-    _history = [];
-    notifyListeners();
+  String _stem(String fileName) {
+    final dot = fileName.lastIndexOf('.');
+    return dot > 0 ? fileName.substring(0, dot) : fileName;
   }
+}
 
-  /// Version web : entrée = Map<nomFichier, bytes>, sortie = bytes en mémoire
-  Future<void> convertFromBytes({
-    required ConversionType type,
-    required Map<String, Uint8List> inputFiles,
-    required bool isPremium,
-    int quality = 90,
-  }) async {
-    if (inputFiles.isEmpty) return;
-
-    if (!isPremium &&
-        _historyService.todayCount >= AppConstants.freeConversionsPerDay) {
-      _state = ConversionState.error;
-      _errorMessage =
-          'Tu as atteint ta limite de ${AppConstants.freeConversionsPerDay} conversions aujourd\'hui.\nPasse à Premium pour des conversions illimitées !';
-      notifyListeners();
-      return;
+extension _FirstWhereOrNull<T> on List<T> {
+  T? firstWhereOrNull(bool Function(T) test) {
+    for (final element in this) {
+      if (test(element)) return element;
     }
-
-    _state = ConversionState.loading;
-    _outputPaths = [];
-    _outputBytes = [];
-    _errorMessage = null;
-    _progress = 0.0;
-    notifyListeners();
-
-    final id = _conversionService.generateConversionId();
-    final firstName = inputFiles.keys.first;
-    final firstBytes = inputFiles.values.first;
-    final inputSize = firstBytes.length;
-
-    // Validate file size
-    if (inputSize > AppConstants.maxFileSizeBytes) {
-      _state = ConversionState.error;
-      _errorMessage = 'Le fichier est trop volumineux (max 50 MB).';
-      notifyListeners();
-      return;
-    }
-
-    try {
-      switch (type) {
-        case ConversionType.pdfToJpg:
-          _setProgress(0.2);
-          _outputBytes = await _conversionService.pdfToJpgBytes(firstBytes);
-          _outputPaths = _outputBytes.asMap().entries
-              .map((e) =>
-                  '${firstName.replaceAll(RegExp(r'\.pdf$', caseSensitive: false), '')}_page_${e.key + 1}.jpg')
-              .toList();
-          break;
-
-        case ConversionType.jpgToPdf:
-        case ConversionType.pngToPdf:
-          _setProgress(0.3);
-          final pdfBytes = await _conversionService
-              .imagesToPdfBytes(inputFiles.values.toList());
-          _outputBytes = [pdfBytes];
-          _outputPaths = ['converted.pdf'];
-          break;
-
-        case ConversionType.pngToJpg:
-          _setProgress(0.3);
-          final jpgBytes = await _conversionService
-              .imageFormatBytes(firstBytes, toPng: false, quality: quality);
-          _outputBytes = [jpgBytes];
-          _outputPaths = [
-            '${firstName.replaceAll(RegExp(r'\.png$', caseSensitive: false), '')}.jpg'
-          ];
-          break;
-
-        case ConversionType.jpgToPng:
-          _setProgress(0.3);
-          final pngBytes = await _conversionService
-              .imageFormatBytes(firstBytes, toPng: true);
-          _outputBytes = [pngBytes];
-          _outputPaths = [
-            '${firstName.replaceAll(RegExp(r'\.(jpg|jpeg)$', caseSensitive: false), '')}.png'
-          ];
-          break;
-
-        case ConversionType.docToPdf:
-          _setProgress(0.2);
-          final uri = Uri.parse('${AppConstants.backendUrl}/api/convert/doc-to-pdf');
-          final request = http.MultipartRequest('POST', uri);
-          request.files.add(http.MultipartFile.fromBytes(
-            'file',
-            firstBytes,
-            filename: firstName,
-          ));
-          _setProgress(0.5);
-          final streamed = await request.send();
-          final resp = await http.Response.fromStream(streamed);
-          if (resp.statusCode == 200) {
-            _outputBytes = [resp.bodyBytes];
-            _outputPaths = [
-              '${firstName.replaceAll(RegExp(r'\.(docx?)$', caseSensitive: false), '')}.pdf'
-            ];
-          } else {
-            final err = jsonDecode(resp.body);
-            throw Exception(err['error'] ?? 'Erreur backend');
-          }
-          break;
-
-        case ConversionType.svgToPng:
-          _setProgress(0.3);
-          final pngBytes = await _conversionService.svgToPngBytes(firstBytes);
-          _outputBytes = [pngBytes];
-          _outputPaths = [
-            '${firstName.replaceAll(RegExp(r'\.svg$', caseSensitive: false), '')}.png'
-          ];
-          break;
-      }
-
-      _setProgress(0.9);
-
-      // Sauvegarder dans l'historique
-      final outputSize = _outputBytes.isNotEmpty ? _outputBytes.first.length : null;
-      final record = ConversionRecord(
-        id: id,
-        typeIndex: type.index.toString(),
-        inputFileName: firstName,
-        outputFilePath: _outputPaths.isNotEmpty ? _outputPaths.first : null,
-        createdAt: DateTime.now(),
-        inputFileSizeBytes: inputSize,
-        outputFileSizeBytes: outputSize,
-        isSuccess: true,
-      );
-      await _historyService.add(record);
-      _history = _historyService.getAll();
-
-      _state = ConversionState.success;
-      _setProgress(1.0);
-
-      if (!isPremium) {
-        await _adService.showInterstitial();
-      }
-    } catch (e) {
-      // Sauvegarder l'échec dans l'historique
-      final record = ConversionRecord(
-        id: id,
-        typeIndex: type.index.toString(),
-        inputFileName: firstName,
-        createdAt: DateTime.now(),
-        inputFileSizeBytes: inputSize,
-        isSuccess: false,
-        errorMessage: e.toString(),
-      );
-      await _historyService.add(record);
-      _history = _historyService.getAll();
-
-      _state = ConversionState.error;
-      _errorMessage = e.toString().replaceFirst('Exception: ', '');
-      debugPrint('Web conversion error: $e');
-    }
-
-    notifyListeners();
+    return null;
   }
 }
