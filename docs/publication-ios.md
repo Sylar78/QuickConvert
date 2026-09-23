@@ -71,9 +71,16 @@ qui suit se passe dans cette fenêtre et dans ce dossier.
 
 ```bash
 openssl genrsa -out distribution.key 2048
-openssl req -new -key distribution.key -out demande.certSigningRequest \
+MSYS_NO_PATHCONV=1 openssl req -new -key distribution.key \
+  -out demande.certSigningRequest \
   -subj "/emailAddress=TON_EMAIL/CN=QuickConvert/C=FR"
 ```
+
+`MSYS_NO_PATHCONV=1` n'est utile que sur Windows, et il y est indispensable :
+Git Bash croit que `/emailAddress=…` est un chemin de fichier et le réécrit en
+`C:/Program Files/Git/emailAddress=…` avant qu'OpenSSL le voie. La demande
+part alors avec un sujet absurde, ou la commande échoue. Sur macOS et Linux,
+la variable est simplement ignorée.
 
 Deux fichiers apparaissent dans le dossier : `distribution.key`, ta clé
 privée, et `demande.certSigningRequest`, la demande à remettre à Apple.
