@@ -287,10 +287,29 @@ la même valeur que `pubspec.yaml`, sinon l'historique devient illisible.
 
 ### À la main
 
-Onglet *Actions* du dépôt → *Publier sur TestFlight* → *Run workflow*. Le
-champ *Numéro de build* est facultatif : rempli, il l'emporte sur celui de
-`pubspec.yaml` le temps de cette exécution. Pratique pour renvoyer un build
-sans toucher au dépôt.
+Le plus court est d'aller droit à la page du workflow :
+
+<https://github.com/Sylar78/QuickConvert/actions/workflows/publication-testflight.yml>
+
+Sinon, depuis le dépôt : onglet **Actions**, dans la barre du haut, entre
+*Pull requests* et *Projects*. La colonne de gauche liste les workflows ;
+clique sur *Publier sur TestFlight*.
+
+Un bandeau apparaît alors à droite, *This workflow has a workflow_dispatch
+event trigger*, avec un bouton **Run workflow**. Il ouvre un petit panneau :
+la branche `main`, et le champ *Numéro de build*, facultatif. Laisse-le vide,
+puis clique sur le bouton vert *Run workflow*.
+
+Ce champ, quand il est rempli, l'emporte sur `pubspec.yaml` le temps de cette
+exécution : pratique pour renvoyer un build sans toucher au dépôt.
+
+L'exécution apparaît dans la liste après quelques secondes — rafraîchis si
+elle tarde. Clique dessus, puis sur le job, pour dérouler les étapes en
+direct.
+
+Le bouton n'apparaît que si le fichier du workflow est sur la branche par
+défaut, ce qui est le cas ici. Sur l'interface mobile de GitHub il est
+souvent absent : fais-le depuis un navigateur d'ordinateur.
 
 ### Ce qui se passe, et où regarder
 
