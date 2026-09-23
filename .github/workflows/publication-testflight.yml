@@ -35,7 +35,7 @@ env:
   # Doit correspondre exactement à l'identifiant enregistré dans le portail
   # Apple Developer et dans App Store Connect. Il ne pourra plus changer une
   # fois l'app soumise.
-  BUNDLE_ID: com.quickconvert.quickConvert
+  BUNDLE_ID: fr.quickconvert.app
   IPA_DIR: app/build/ios/ipa
 
 jobs:

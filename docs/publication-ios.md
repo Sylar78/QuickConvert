@@ -14,18 +14,17 @@ lequel s'y prendre.
 - L'app créée dans **App Store Connect**, avec le même identifiant de bundle
   que le projet.
 
-## 2. Décider de l'identifiant de bundle
+## 2. L'identifiant de bundle
 
-Le projet Xcode porte aujourd'hui `com.quickconvert.quickConvert` — un
-identifiant généré automatiquement par Flutter, jamais choisi. Android, lui,
-utilise `fr.quickconvert.app`.
+L'app iOS porte `fr.quickconvert.app`, le même identifiant qu'Android. C'est
+sous celui-là qu'il faut l'enregistrer dans le portail Apple Developer et dans
+App Store Connect.
 
-**À trancher avant d'enregistrer quoi que ce soit chez Apple** : cet
-identifiant ne peut plus changer une fois l'app soumise. Pour rester cohérent
-avec Android, `fr.quickconvert.app` serait plus propre. Si tu le changes, il
-faut le changer à trois endroits : `PRODUCT_BUNDLE_IDENTIFIER` dans
-`app/ios/Runner.xcodeproj/project.pbxproj`, la clé `BUNDLE_ID` du workflow, et
-`app/ios/ExportOptions.plist`.
+Il portait auparavant `com.quickconvert.quickConvert`, généré automatiquement
+par Flutter et jamais choisi ; il a été aligné avant toute soumission, parce
+qu'il ne peut plus changer ensuite. Il vit à trois endroits, tenus cohérents :
+`PRODUCT_BUNDLE_IDENTIFIER` dans `app/ios/Runner.xcodeproj/project.pbxproj`,
+la clé `BUNDLE_ID` du workflow, et `app/ios/ExportOptions.plist`.
 
 ## 3. Les huit secrets
 
@@ -99,6 +98,10 @@ L'inspection du projet iOS a trouvé plusieurs motifs de rejet, traités :
   L'app n'utilise que HTTPS, qui est exempté.
 - **Une exception de transport pointait vers un projet Supabase** qui n'est
   plus utilisé. Supprimée.
+- **L'iPhone était bloqué en portrait.** `Info.plist` ne déclarait que le
+  portrait alors que `main.dart` demande aussi le paysage et que la mise en
+  page s'y adapte depuis la refonte : iOS ignorait la demande. Les deux
+  orientations paysage sont ajoutées, comme sur iPad.
 
 ## Ce qui reste à traiter avant une vraie soumission
 
@@ -110,9 +113,6 @@ L'inspection du projet iOS a trouvé plusieurs motifs de rejet, traités :
   impose la demande d'autorisation de suivi (ATT) et la clé
   `NSUserTrackingUsageDescription`. Sans elle, il faut configurer AdMob en
   publicités non personnalisées. En l'état, ni l'une ni l'autre n'est faite.
-- **L'orientation.** `Info.plist` limite l'iPhone au portrait alors que
-  `main.dart` demande aussi le paysage et que la mise en page s'y adapte
-  depuis la refonte. À aligner dans un sens ou dans l'autre.
 - **Aucune compilation iOS n'a jamais eu lieu** dans ce dépôt : il n'y a pas
   de `Podfile.lock`. La première exécution du workflow est donc aussi le
   premier vrai test de compilation, et peut demander des ajustements.

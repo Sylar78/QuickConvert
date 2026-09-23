@@ -21,7 +21,7 @@
 	<!-- Doit correspondre à PRODUCT_BUNDLE_IDENTIFIER dans le projet Xcode -->
 	<key>provisioningProfiles</key>
 	<dict>
-		<key>com.quickconvert.quickConvert</key>
+		<key>fr.quickconvert.app</key>
 		<string>QuickConvert App Store Distribution</string>
 	</dict>
 
