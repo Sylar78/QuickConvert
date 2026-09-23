@@ -190,10 +190,26 @@ jobs:
           path: ${{ env.IPA_DIR }}/*.ipa
           retention-days: 30
 
+      # `altool` veut le chemin du fichier .ipa, pas celui du dossier qui le
+      # contient : reçu un dossier, il répond « Could not determine the
+      # package's bundle ID », ce qui laisse croire à une archive corrompue.
+      # Le nom du fichier suit celui de l'app et peut donc changer : on le
+      # cherche plutôt que de l'écrire en dur.
+      - name: Localiser l'archive
+        id: archive
+        run: |
+          chemin="$(find "$IPA_DIR" -maxdepth 1 -name '*.ipa' | head -n 1)"
+          if [ -z "$chemin" ]; then
+            echo "::error::Aucun .ipa trouvé dans $IPA_DIR"
+            exit 1
+          fi
+          echo "Archive : $chemin"
+          echo "path=$chemin" >> "$GITHUB_OUTPUT"
+
       - name: Déposer sur TestFlight
         uses: apple-actions/upload-testflight-build@v3
         with:
-          app-path: ${{ env.IPA_DIR }}
+          app-path: ${{ steps.archive.outputs.path }}
           issuer-id: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           api-key-id: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           api-private-key: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}

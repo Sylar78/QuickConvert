@@ -322,7 +322,13 @@ Suis l'exécution dans l'onglet *Actions*. Un runner macOS est lent : la
 compilation d'une app Flutter iOS prend un bon moment, sans rien afficher
 d'inquiétant.
 
-L'archive `.ipa` est conservée trente jours, sous *Artifacts* sur la page de
+L'archive `.ipa` porte le nom de l'app, qui peut changer ; le workflow la
+cherche dans son dossier plutôt que de l'écrire en dur, parce que l'outil de
+dépôt d'Apple veut le fichier et non le dossier. Reçu un dossier, il répond
+« Could not determine the package's bundle ID », ce qui laisse croire à tort
+à une archive corrompue.
+
+Elle est conservée trente jours, sous *Artifacts* sur la page de
 l'exécution. Si seule la dernière étape échoue, le dépôt sur TestFlight, tu
 peux la télécharger et la déposer à la main avec Transporter sans tout
 reconstruire.
