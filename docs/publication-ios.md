@@ -159,24 +159,62 @@ dossier que le reste ; c'est lui que tu encoderas en base64 pour le secret
 À ce stade tu as tout ce qu'il faut côté signature : `distribution.p12`, son
 mot de passe, le `.mobileprovision` et son nom.
 
-**La clé d'API** : App Store Connect → *Utilisateurs et accès* →
-*Intégrations* → *Clés App Store Connect* → **+**, rôle *App Manager*. Le
-`.p8` ne se télécharge **qu'une fois**.
+### La clé d'API App Store Connect
+
+C'est ce qui permet au workflow de déposer la build sans ton mot de passe
+Apple. Trois des huit secrets en sortent, et ils se récupèrent tous sur la
+même page.
+
+Il faut être *Account Holder* ou *Admin* du compte pour créer une clé. Si le
+bouton **+** n'apparaît pas, c'est ça.
+
+Sur **appstoreconnect.apple.com** → *Utilisateurs et accès* → onglet
+*Intégrations* → dans la colonne de gauche, *Clés App Store Connect*.
+Choisis bien **Team Keys** et non *Individual Keys*.
+
+1. Bouton **+**. *Name* : ce que tu veux, par exemple `GitHub Actions` — ce
+   nom ne sert qu'à t'y retrouver et n'est recopié nulle part.
+2. *Access* : choisis **App Manager**. En dessous, la clé n'aura pas le droit
+   de déposer sur TestFlight.
+3. *Generate*. Une ligne apparaît dans le tableau.
+
+Trois valeurs à prendre, et c'est le seul moment où la première est
+disponible :
+
+- **Download** au bout de la ligne : un fichier `AuthKey_XXXXXXXXXX.p8`. Il
+  ne se télécharge **qu'une fois**, Apple ne le redonnera jamais. Range-le
+  avec le reste. Son contenu entier, en-têtes `-----BEGIN PRIVATE KEY-----`
+  comprises, est le secret `APP_STORE_CONNECT_PRIVATE_KEY` — tel quel, sans
+  base64, contrairement aux deux autres fichiers.
+- La colonne **KEY ID** de cette ligne, dix caractères : secret
+  `APP_STORE_CONNECT_KEY_ID`.
+- L'**Issuer ID** affiché au-dessus du tableau, un long identifiant à tirets :
+  secret `APP_STORE_CONNECT_ISSUER_ID`. Il est commun à toutes tes clés, donc
+  facile à confondre avec le Key ID.
+
+Si tu perds le `.p8`, la clé est à révoquer et à recréer : ça ne casse rien
+d'autre, seuls les trois secrets sont à remettre à jour.
+
+Il te manque alors une seule valeur, le **Team ID** : portail Apple Developer
+→ *Membership details*, dix caractères. C'est le secret `APPLE_TEAM_ID`.
 
 ## 5. Les huit secrets
 
 Dans le dépôt GitHub : *Settings → Secrets and variables → Actions*.
 
-| Secret | Où le trouver |
+Trois d'entre eux sont des valeurs que **tu as choisies** toi-même, et c'est
+ce qui déroute : ne les cherche pas sur un écran d'Apple.
+
+| Secret | D'où il vient |
 | --- | --- |
-| `APPLE_TEAM_ID` | Apple Developer → Membership (dix caractères) |
-| `IOS_DIST_CERT_P12_BASE64` | Ton certificat *Apple Distribution* exporté en `.p12`, encodé en base64 |
-| `IOS_DIST_CERT_PASSWORD` | Le mot de passe choisi à l'export du `.p12` |
-| `IOS_PROVISIONING_PROFILE_BASE64` | Le profil *App Store* du bundle, encodé en base64 |
-| `IOS_PROVISIONING_PROFILE_NAME` | Le nom exact du profil, tel qu'il apparaît dans le portail |
-| `APP_STORE_CONNECT_KEY_ID` | App Store Connect → Users and Access → Integrations → App Store Connect API |
-| `APP_STORE_CONNECT_ISSUER_ID` | Même page, en haut |
-| `APP_STORE_CONNECT_PRIVATE_KEY` | Le contenu entier du fichier `.p8` téléchargé, en-têtes comprises |
+| `APPLE_TEAM_ID` | Relevé : portail Apple Developer → *Membership details* |
+| `IOS_DIST_CERT_P12_BASE64` | Fabriqué : `distribution.p12`, encodé en base64 |
+| `IOS_DIST_CERT_PASSWORD` | **Choisi** : le mot de passe tapé à l'export du `.p12` |
+| `IOS_PROVISIONING_PROFILE_BASE64` | Téléchargé : le `.mobileprovision`, encodé en base64 |
+| `IOS_PROVISIONING_PROFILE_NAME` | **Choisi** : le nom donné au profil, au caractère près |
+| `APP_STORE_CONNECT_KEY_ID` | Relevé : colonne *KEY ID* de la clé créée |
+| `APP_STORE_CONNECT_ISSUER_ID` | Relevé : au-dessus du tableau des clés |
+| `APP_STORE_CONNECT_PRIVATE_KEY` | Téléchargé : le contenu entier du `.p8` |
 
 La clé `.p8` ne se télécharge **qu'une fois**. Garde-la.
 
