@@ -34,20 +34,19 @@ class AppConstants {
   //
   // Un bloc d'annonces s'ecrit `ca-app-pub-<editeur>/<bloc>`, avec une barre
   // oblique. La forme a tilde, `ca-app-pub-<editeur>~<app>`, est l'ID de
-  // l'application, qui ne va que dans AndroidManifest.xml et Info.plist.
-  //
-  // ATTENTION : `admobBannerIdAndroid` porte aujourd'hui un ID d'application,
-  // pas un bloc d'annonces. La banniere Android ne peut donc pas se charger —
-  // `AdmobService.loadBanner` echoue en silence a chaque appel. Il faut le
-  // vrai bloc banniere depuis la console AdMob.
-  static const String admobBannerIdAndroid = 'ca-app-pub-6336563192834287~9992114041';
+  // l'application : il ne va que dans AndroidManifest.xml et Info.plist, et
+  // jamais ici. Confondre les deux fait echouer le chargement en silence.
+  static const String admobBannerIdAndroid = 'ca-app-pub-6336563192834287/3482546015';
   static const String admobInterstitialIdAndroid = 'ca-app-pub-6336563192834287/6052869030';
 
-  // iOS : toujours les blocs de test de Google. L'app iOS n'existe pas encore
-  // dans la console AdMob ; tant qu'elle n'y est pas, ces deux blocs et l'ID
-  // d'application de Info.plist restent ceux de test, donc zero revenu.
+  static const String admobInterstitialIdIos = 'ca-app-pub-6336563192834287/3620216155';
+
+  // ATTENTION : toujours le bloc de test de Google. Le bloc banniere iOS reel
+  // n'a pas encore ete releve dans la console AdMob — la valeur fournie pour
+  // « BannerQuickConvert » etait l'ID de l'application, pas un bloc. Tant que
+  // cette ligne n'a pas change, la banniere iOS sert une annonce de test et ne
+  // rapporte rien.
   static const String admobBannerIdIos = 'ca-app-pub-3940256099942544/2934735716';
-  static const String admobInterstitialIdIos = 'ca-app-pub-3940256099942544/4411468910';
 
   // In-App Purchase
   static const String premiumMonthlyId = 'quickconvert_premium_monthly';

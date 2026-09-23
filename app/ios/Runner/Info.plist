@@ -108,9 +108,10 @@
 		</dict>
 	</array>
 
-	<!-- AdMob -->
+	<!-- AdMob : ID de l'application iOS, compte pub-6336563192834287.
+	     C'etait jusqu'ici l'ID de test de Google. -->
 	<key>GADApplicationIdentifier</key>
-	<string>ca-app-pub-3940256099942544~1458002511</string>
+	<string>ca-app-pub-6336563192834287~4063069281</string>
 	<key>GADIsAdManagerApp</key>
 	<true/>
 	<key>SKAdNetworkItems</key>
