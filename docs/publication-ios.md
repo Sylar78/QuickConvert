@@ -200,7 +200,19 @@ Il te manque alors une seule valeur, le **Team ID** : portail Apple Developer
 
 ## 5. Les huit secrets
 
-Dans le dépôt GitHub : *Settings → Secrets and variables → Actions*.
+Sur **github.com/Sylar78/QuickConvert** → *Settings* → dans la colonne de
+gauche, *Secrets and variables* → *Actions* → onglet *Secrets* → bouton
+**New repository secret**. Un nom, une valeur, *Add secret*, et on
+recommence : huit fois.
+
+Le nom doit être recopié au caractère près, en majuscules, tel qu'il figure
+dans le tableau ci-dessous. Un secret mal nommé n'est pas une erreur pour
+GitHub : il est simplement vide côté workflow, et la première étape s'arrête
+en disant lequel manque.
+
+Une valeur déposée n'est plus relisible, même par toi : GitHub ne sait que la
+remplacer. C'est normal, et c'est pour ça qu'il faut garder le dossier de
+travail jusqu'à la première exécution réussie.
 
 Trois d'entre eux sont des valeurs que **tu as choisies** toi-même, et c'est
 ce qui déroute : ne les cherche pas sur un écran d'Apple.
@@ -233,6 +245,9 @@ base64 -w0 distribution.p12            # Linux
 Le même geste vaut pour le `.mobileprovision`. Le `.p8`, lui, se colle tel
 quel, sans encodage, en-têtes `-----BEGIN PRIVATE KEY-----` comprises.
 
+Une fois les huit déposés, il ne reste rien à préparer : passe à l'étape
+suivante et déclenche une première exécution.
+
 ## 6. Déclencher la construction
 
 ### D'abord : le numéro de version ne vient pas de l'étiquette
@@ -251,7 +266,9 @@ L'étiquette `ios-v…` ne fait que **déclencher** le workflow : poser
 Apple refuse un build dont le numéro a déjà été déposé pour la même version.
 Donc à chaque envoi, au minimum, ce numéro doit augmenter.
 
-Avant de déclencher, décide donc :
+**Pour la toute première exécution, il n'y a rien à changer** : aucune app
+iOS n'a jamais été déposée depuis ce dépôt, donc le build `4` est libre chez
+Apple. Ensuite seulement, à chaque envoi :
 
 - **Simple correction, même version publique** : passe `1.0.1+4` à `1.0.1+5`.
 - **Nouvelle version publique** : passe à `1.0.2+5`.
