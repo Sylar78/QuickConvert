@@ -8,9 +8,7 @@ class AdmobService {
   factory AdmobService() => _instance;
   AdmobService._internal();
 
-  BannerAd? _bannerAd;
   InterstitialAd? _interstitialAd;
-  bool _isBannerLoaded = false;
   bool _isInterstitialReady = false;
 
   // ─── IDs selon plateforme ─────────────────────────────────────────────────
@@ -43,36 +41,20 @@ class AdmobService {
     await _loadInterstitial();
   }
 
-  // ─── Banner ───────────────────────────────────────────────────────────────
-  Future<BannerAd?> loadBanner() async {
-    if (kIsWeb) return null;
-    _isBannerLoaded = false;
-
-    final completer = _BannerCompleter();
-
-    _bannerAd = BannerAd(
-      adUnitId: _bannerId,
-      size: AdSize.banner,
-      request: adRequest,
-      listener: BannerAdListener(
-        onAdLoaded: (_) {
-          _isBannerLoaded = true;
-          completer.complete(_bannerAd);
-        },
-        onAdFailedToLoad: (ad, error) {
-          debugPrint('Banner ad failed: ${error.message}');
-          ad.dispose();
-          completer.complete(null);
-        },
-      ),
-    );
-
-    await _bannerAd!.load();
-    return completer.future;
-  }
-
-  bool get isBannerLoaded => _isBannerLoaded;
-  BannerAd? get bannerAd => _bannerAd;
+  // ─── Banniere ─────────────────────────────────────────────────────────────
+  //
+  // La banniere appartient au widget qui l'affiche, pas a ce service : deux
+  // ecrans peuvent en montrer une en meme temps, et un `BannerAd` ne peut
+  // etre attache qu'a un seul `AdWidget`. La version precedente en gardait
+  // une seule ici, et attendait son chargement deux secondes avant de
+  // renoncer definitivement — une annonce un peu lente ne s'affichait donc
+  // jamais, sans que rien ne le signale.
+  BannerAd buildBanner({required BannerAdListener listener}) => BannerAd(
+        adUnitId: _bannerId,
+        size: AdSize.banner,
+        request: adRequest,
+        listener: listener,
+      );
 
   // ─── Interstitiel ─────────────────────────────────────────────────────────
   Future<void> _loadInterstitial() async {
@@ -125,28 +107,6 @@ class AdmobService {
   }
 
   void dispose() {
-    _bannerAd?.dispose();
     _interstitialAd?.dispose();
-  }
-}
-
-/// Petit helper pour attendre le chargement du banner de manière async
-class _BannerCompleter {
-  BannerAd? _result;
-  bool _completed = false;
-  final List<Function(BannerAd?)> _listeners = [];
-
-  void complete(BannerAd? ad) {
-    _result = ad;
-    _completed = true;
-    for (final l in _listeners) {
-      l(ad);
-    }
-  }
-
-  Future<BannerAd?> get future async {
-    if (_completed) return _result;
-    await Future.delayed(const Duration(seconds: 2));
-    return _result;
   }
 }

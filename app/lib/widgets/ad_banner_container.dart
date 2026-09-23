@@ -8,12 +8,19 @@ import '../services/services.dart';
 
 /// La bannière publicitaire des comptes gratuits.
 ///
-/// Sur mobile elle affiche la vraie bannière AdMob — l'ancienne version
-/// dessinait un [Placeholder] à la place, donc aucune impression n'était
-/// jamais rendue. Sur le web, où AdMob n'existe pas, elle montre un espace
-/// réservé qui se présente comme tel.
+/// Elle se construit sur les rappels du SDK plutôt que sur une attente fixe :
+/// la version précédente renonçait au bout de deux secondes et n'affichait
+/// plus jamais rien, ce qui rendait invisible toute annonce un peu lente à
+/// venir. Elle possède sa propre annonce, parce qu'un `BannerAd` ne peut être
+/// attaché qu'à un seul `AdWidget` à la fois.
+///
+/// [showPlaceholder] décide de ce qu'on fait quand aucune annonce n'arrive :
+/// un espace réservé qui s'annonce comme tel là où la place est prévue, ou
+/// rien du tout là où un trou se verrait, comme sous un résultat.
 class AdBannerContainer extends StatefulWidget {
-  const AdBannerContainer({super.key});
+  final bool showPlaceholder;
+
+  const AdBannerContainer({super.key, this.showPlaceholder = true});
 
   @override
   State<AdBannerContainer> createState() => _AdBannerContainerState();
@@ -21,16 +28,36 @@ class AdBannerContainer extends StatefulWidget {
 
 class _AdBannerContainerState extends State<AdBannerContainer> {
   BannerAd? _ad;
+  bool _loaded = false;
 
   @override
   void initState() {
     super.initState();
-    if (!kIsWeb) _loadAd();
+    if (!kIsWeb) _load();
   }
 
-  Future<void> _loadAd() async {
-    final ad = await AdmobService().loadBanner();
-    if (mounted) setState(() => _ad = ad);
+  void _load() {
+    _ad = AdmobService().buildBanner(
+      listener: BannerAdListener(
+        onAdLoaded: (_) {
+          if (mounted) setState(() => _loaded = true);
+        },
+        onAdFailedToLoad: (ad, error) {
+          // Le plus souvent : bloc d'annonces trop récent, ou aucune annonce
+          // à servir pour ce profil. Rien à faire, et surtout rien à montrer.
+          debugPrint('Bannière non chargée : ${error.message}');
+          ad.dispose();
+          if (mounted) setState(() => _ad = null);
+        },
+      ),
+    );
+    _ad!.load();
+  }
+
+  @override
+  void dispose() {
+    _ad?.dispose();
+    super.dispose();
   }
 
   @override
@@ -39,14 +66,17 @@ class _AdBannerContainerState extends State<AdBannerContainer> {
     if (user.isPremium) return const SizedBox.shrink();
 
     final ad = _ad;
-    if (kIsWeb || ad == null) return const _AdPlaceholder();
+    if (!kIsWeb && _loaded && ad != null) {
+      return SizedBox(
+        width: ad.size.width.toDouble(),
+        height: ad.size.height.toDouble(),
+        child: AdWidget(ad: ad),
+      );
+    }
 
-    return Container(
-      width: ad.size.width.toDouble(),
-      height: ad.size.height.toDouble(),
-      alignment: Alignment.center,
-      child: AdWidget(ad: ad),
-    );
+    return widget.showPlaceholder
+        ? const _AdPlaceholder()
+        : const SizedBox.shrink();
   }
 }
 

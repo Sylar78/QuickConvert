@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../core/core.dart';
 import '../models/models.dart';
+import 'ad_banner_container.dart';
 import 'format_badge.dart';
 
 /// La feuille de résultat, une fois la conversion réussie.
@@ -118,6 +119,13 @@ class ConversionResultSheet extends StatelessWidget {
               onPressed: onConvertAgain,
               child: const Text('Convertir autre chose'),
             ),
+
+            // La bannière vient après les boutons, et à distance : collée à
+            // eux, elle récolterait des clics involontaires, ce que les règles
+            // d'AdMob interdisent. Sans annonce à servir, elle n'occupe
+            // aucune place — un espace réservé sous un résultat se verrait.
+            const SizedBox(height: AppSpacing.lg),
+            const AdBannerContainer(showPlaceholder: false),
           ],
         ),
       ),
