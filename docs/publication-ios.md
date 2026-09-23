@@ -410,6 +410,33 @@ une adresse qui n'est **pas** ton identifiant Apple. Sur l'iPhone,
 *Réglages* → *Développeur* → *Compte Sandbox*. Les achats y sont gratuits et
 les durées raccourcies, un abonnement annuel s'y renouvelle en une heure.
 
+## 7 bis. Essayer le build sur ton iPhone
+
+À faire **avant** de soumettre, et pas après : l'app n'a jamais tourné sur un
+appareil iOS. Une compilation réussie ne dit rien de ce qui se passe au
+lancement. Un plantage découvert par l'examinateur d'Apple coûte plusieurs
+jours ; découvert par toi, dix minutes.
+
+Le test interne ne demande **aucune validation d'Apple**, contrairement au
+test externe. C'est immédiat.
+
+1. Onglet *TestFlight* → *TESTS INTERNES* → **+** → nomme le groupe, par
+   exemple `Interne`.
+2. Ajoute-toi comme testeur. Un testeur interne doit être un utilisateur du
+   compte App Store Connect ; c'est ton cas.
+3. Dans le groupe, ajoute le build.
+4. Installe l'app **TestFlight** sur l'iPhone, depuis l'App Store, et accepte
+   l'invitation reçue par courriel.
+
+Ce qu'il faut regarder en priorité, parce que ce sont les parties qui n'ont
+jamais été exécutées sur iOS : le lancement, une conversion de chaque type,
+l'enregistrement dans la galerie et le partage — les trois autorisations
+déclarées dans `Info.plist` —, l'affichage des annonces, et l'écran Premium.
+
+Les abonnements ne pourront s'acheter que lorsqu'ils existeront dans App
+Store Connect et que le contrat Paid Applications sera signé. Dans TestFlight
+les achats passent par le bac à sable, donc sans être débités.
+
 ## 8. Soumettre à l'App Store
 
 Le workflow s'arrête à TestFlight, et c'est voulu : une soumission déclenche
