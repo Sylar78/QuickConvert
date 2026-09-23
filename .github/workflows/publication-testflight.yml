@@ -110,6 +110,26 @@ jobs:
         with:
           node-version: '20'
 
+      # La version minimale d'iOS est écrite à trois endroits, et c'est leur
+      # désaccord qui a fait refuser un dépôt : AppFrameworkInfo.plist avait
+      # perdu la sienne. Le désaccord ne se voit qu'au moment du dépôt, chez
+      # Apple, donc on le cherche ici.
+      - name: Vérifier la version minimale d'iOS
+        run: |
+          plist="$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' app/ios/Flutter/AppFrameworkInfo.plist)"
+          podfile="$(sed -n "s/^platform :ios, '\(.*\)'.*/\1/p" app/ios/Podfile)"
+          projet="$(grep -o 'IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*' app/ios/Runner.xcodeproj/project.pbxproj | sort -u | wc -l)"
+          cible="$(grep -o 'IPHONEOS_DEPLOYMENT_TARGET = [0-9.]*' app/ios/Runner.xcodeproj/project.pbxproj | head -1 | sed 's/.*= //')"
+          echo "AppFrameworkInfo.plist : $plist | Podfile : $podfile | projet Xcode : $cible"
+          if [ "$projet" -ne 1 ]; then
+            echo "::error::Le projet Xcode déclare plusieurs cibles de déploiement différentes."
+            exit 1
+          fi
+          if [ "$plist" != "$podfile" ] || [ "$plist" != "$cible" ]; then
+            echo "::error::Les trois versions minimales d'iOS ne concordent pas ; Apple refusera le dépôt."
+            exit 1
+          fi
+
       - name: Installer les dépendances
         working-directory: app
         run: flutter pub get

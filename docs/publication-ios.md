@@ -337,6 +337,22 @@ Quand le workflow est vert, Apple prend encore quelques minutes à traiter le
 build avant qu'il n'apparaisse dans l'onglet *TestFlight*. Un refus à ce
 stade arrive par courriel, et ne vient jamais du workflow.
 
+### La version minimale d'iOS
+
+L'app demande **iOS 15.0 au minimum**. Apple n'accepte plus aucun dépôt en
+dessous à partir du printemps 2027, et le prévient par l'avertissement
+ITMS-90068 d'ici là.
+
+Cette valeur est écrite à trois endroits, qui doivent rester d'accord :
+
+- `app/ios/Flutter/AppFrameworkInfo.plist`, clé `MinimumOSVersion`
+- `app/ios/Podfile`, la ligne `platform :ios` et le `post_install`
+- `app/ios/Runner.xcodeproj/project.pbxproj`, `IPHONEOS_DEPLOYMENT_TARGET`
+
+Leur désaccord ne se voit qu'au moment du dépôt, dans un message d'Apple qui
+n'aide pas. Le workflow les compare donc avant de construire, et s'arrête si
+elles divergent.
+
 ### Si Apple refuse le dépôt pour cause de SDK
 
 Apple impose un SDK iOS minimum pour tout dépôt, et ce minimum monte chaque
