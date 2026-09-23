@@ -9,10 +9,11 @@ lequel s'y prendre.
 
 ## 1. Le compte
 
-- Un **Apple Developer Program** actif : 99 $ par an. Sans lui, rien de ce
-  qui suit n'est possible.
-- L'app créée dans **App Store Connect**, avec le même identifiant de bundle
-  que le projet.
+Un **Apple Developer Program** actif, 99 $ par an. Sans lui, rien de ce qui
+suit n'est possible : ni certificat, ni profil, ni fiche d'application.
+
+La validation du compte prend parfois un jour ou deux. C'est la seule étape
+qui ne dépend pas de toi, donc c'est par là qu'il faut commencer.
 
 ## 2. L'identifiant de bundle
 
@@ -26,7 +27,60 @@ qu'il ne peut plus changer ensuite. Il vit à trois endroits, tenus cohérents :
 `PRODUCT_BUNDLE_IDENTIFIER` dans `app/ios/Runner.xcodeproj/project.pbxproj`,
 la clé `BUNDLE_ID` du workflow, et `app/ios/ExportOptions.plist`.
 
-## 3. Les huit secrets
+## 3. Enregistrer l'app chez Apple
+
+Dans le **portail Apple Developer**, *Certificates, Identifiers & Profiles* :
+
+1. *Identifiers* → **+** → *App IDs* → *App*, description libre, identifiant
+   explicite `fr.quickconvert.app`.
+2. Dans **App Store Connect**, *Mes apps* → **+** → *Nouvelle app*, en
+   choisissant cet identifiant dans la liste.
+
+L'identifiant n'apparaît dans App Store Connect qu'une fois enregistré à
+l'étape 1 : c'est l'ordre qui compte.
+
+## 4. Le certificat et le profil, sans Mac
+
+Apple documente cette étape depuis un Mac, avec *Trousseau d'accès*. Elle se
+fait aussi bien depuis Windows avec OpenSSL, livré avec Git pour Windows :
+ouvre *Git Bash* dans un dossier de travail.
+
+**La demande de signature**, qui prouve que la clé privée est à toi :
+
+```bash
+openssl genrsa -out distribution.key 2048
+openssl req -new -key distribution.key -out demande.certSigningRequest \
+  -subj "/emailAddress=TON_EMAIL/CN=QuickConvert/C=FR"
+```
+
+Garde `distribution.key` : sans elle le certificat téléchargé ne sert à rien.
+
+**Le certificat** : portail Apple Developer → *Certificates* → **+** →
+*Apple Distribution* → dépose `demande.certSigningRequest` → télécharge le
+`.cer`. Puis, pour le convertir au format qu'attend le workflow :
+
+```bash
+openssl x509 -in distribution.cer -inform DER -out distribution.pem
+openssl pkcs12 -export -legacy \
+  -inkey distribution.key -in distribution.pem -out distribution.p12
+```
+
+Le mot de passe demandé ici est celui du secret `IOS_DIST_CERT_PASSWORD`.
+
+`-legacy` n'est pas un détail : sans lui, OpenSSL 3 chiffre le `.p12` d'une
+façon que l'outil de signature de macOS refuse, et le workflow échoue à
+l'import du certificat sans dire pourquoi.
+
+**Le profil** : portail → *Profiles* → **+** → *App Store Connect* →
+l'identifiant `fr.quickconvert.app` → le certificat que tu viens de créer →
+donne-lui un nom, que tu recopieras **exactement** dans le secret
+`IOS_PROVISIONING_PROFILE_NAME` → télécharge le `.mobileprovision`.
+
+**La clé d'API** : App Store Connect → *Utilisateurs et accès* →
+*Intégrations* → *Clés App Store Connect* → **+**, rôle *App Manager*. Le
+`.p8` ne se télécharge **qu'une fois**.
+
+## 5. Les huit secrets
 
 Dans le dépôt GitHub : *Settings → Secrets and variables → Actions*.
 
@@ -45,12 +99,20 @@ La clé `.p8` ne se télécharge **qu'une fois**. Garde-la.
 
 Pour encoder un fichier en base64 :
 
-```bash
-base64 -i certificat.p12 | pbcopy      # macOS
-base64 -w0 certificat.p12              # Linux
+```powershell
+# Windows (PowerShell)
+[Convert]::ToBase64String([IO.File]::ReadAllBytes("distribution.p12")) | Set-Clipboard
 ```
 
-## 4. Déclencher
+```bash
+base64 -i distribution.p12 | pbcopy    # macOS
+base64 -w0 distribution.p12            # Linux
+```
+
+Le même geste vaut pour le `.mobileprovision`. Le `.p8`, lui, se colle tel
+quel, sans encodage, en-têtes `-----BEGIN PRIVATE KEY-----` comprises.
+
+## 6. Déclencher
 
 **Par étiquette** :
 
@@ -65,7 +127,7 @@ avec au besoin un numéro de build.
 L'archive `.ipa` est conservée trente jours comme artefact : si le dépôt
 échoue, tu peux la déposer à la main avec Transporter sans reconstruire.
 
-## 5. Les abonnements dans App Store Connect
+## 7. Les abonnements dans App Store Connect
 
 À créer sous **exactement** les mêmes identifiants que Google Play, parce que
 le code n'en connaît qu'un jeu :
@@ -76,6 +138,25 @@ le code n'en connaît qu'un jeu :
 Ils doivent appartenir au **même groupe d'abonnements**, sans quoi un
 utilisateur pourrait souscrire les deux en même temps. Apple exige aussi une
 capture d'écran de l'écran Premium et une description pour la validation.
+
+## 8. Soumettre à l'App Store
+
+Le workflow s'arrête à TestFlight. La suite est manuelle, et c'est voulu :
+une soumission déclenche une validation humaine chez Apple.
+
+1. La version apparaît dans App Store Connect, onglet *TestFlight*, après
+   quelques minutes de traitement.
+2. Remplis la fiche : captures d'écran, description, mots-clés, catégorie,
+   URL de confidentialité (`https://quickconvert.app/privacy`), et le
+   questionnaire de confidentialité. L'app ne fait pas de suivi publicitaire,
+   donc réponds non au suivi — voir la décision sur les annonces non
+   personnalisées plus bas.
+3. Onglet *Distribution*, choisis la version construite, puis
+   *Ajouter pour examen*.
+
+Le premier examen prend généralement un à trois jours. Un refus arrive avec
+son motif dans *Resolution Center*, et se corrige par une nouvelle étiquette
+`ios-v…` : rien à refaire à la main.
 
 ## Ce qui a été corrigé dans le projet
 
