@@ -4,8 +4,13 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>fr</string>
+	<!-- Le nom affiche sous l'icone et le nom de la fiche App Store doivent
+	     concorder : Apple refuse une fiche dont le nom ne correspond pas a ce
+	     que voit l'utilisateur. « QuickConvert » etant deja pris sur l'App
+	     Store, la fiche s'appelle « QuickDocumentConvert ». Android et le site
+	     gardent « QuickConvert », qui n'est pas contraint par Apple. -->
 	<key>CFBundleDisplayName</key>
-	<string>QuickConvert</string>
+	<string>QuickDocumentConvert</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +18,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>QuickConvert</string>
+	<string>QuickDocumentConvert</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -56,13 +61,13 @@
 
 	<!-- Permissions -->
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>QuickConvert a besoin d'accéder à tes photos pour les convertir.</string>
+	<string>QuickDocumentConvert a besoin d'accéder à tes photos pour les convertir.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>QuickConvert souhaite enregistrer les fichiers convertis dans ta galerie.</string>
+	<string>QuickDocumentConvert souhaite enregistrer les fichiers convertis dans ta galerie.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>QuickConvert peut utiliser l'appareil photo pour scanner des documents.</string>
+	<string>QuickDocumentConvert peut utiliser l'appareil photo pour scanner des documents.</string>
 	<key>NSDocumentsFolderUsageDescription</key>
-	<string>QuickConvert a besoin d'accéder à tes documents pour les convertir.</string>
+	<string>QuickDocumentConvert a besoin d'accéder à tes documents pour les convertir.</string>
 
 	<!-- Accès fichiers partagés -->
 	<key>UIFileSharingEnabled</key>

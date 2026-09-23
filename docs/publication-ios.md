@@ -39,6 +39,21 @@ Dans le **portail Apple Developer**, *Certificates, Identifiers & Profiles* :
 L'identifiant n'apparaît dans App Store Connect qu'une fois enregistré à
 l'étape 1 : c'est l'ordre qui compte.
 
+### Le nom de la fiche
+
+« QuickConvert » était déjà pris sur l'App Store. La fiche s'appelle donc
+**QuickDocumentConvert**, et le nom affiché sous l'icône a été aligné dessus
+dans `app/ios/Runner/Info.plist` (`CFBundleDisplayName` et `CFBundleName`),
+ainsi que les textes des demandes d'autorisation.
+
+C'est une contrainte d'Apple, pas une préférence : une fiche dont le nom ne
+correspond pas à ce que voit l'utilisateur se fait refuser. Android et le
+site gardent « QuickConvert », qui n'est pas concerné, et la marque reste
+QuickConvert partout dans l'app — seul le nom de l'app iOS change.
+
+L'identifiant de bundle, lui, ne bouge pas : `fr.quickconvert.app` n'est pas
+visible et n'a pas à ressembler au nom de la fiche.
+
 ## 4. Le certificat et le profil, sans Mac
 
 Apple documente cette étape depuis un Mac, avec *Trousseau d'accès*. Elle se
