@@ -57,10 +57,17 @@ visible et n'a pas à ressembler au nom de la fiche.
 ## 4. Le certificat et le profil, sans Mac
 
 Apple documente cette étape depuis un Mac, avec *Trousseau d'accès*. Elle se
-fait aussi bien depuis Windows avec OpenSSL, livré avec Git pour Windows :
-ouvre *Git Bash* dans un dossier de travail.
+fait aussi bien depuis Windows avec OpenSSL, livré avec Git pour Windows.
 
-**La demande de signature**, qui prouve que la clé privée est à toi :
+Tous les fichiers de cette section, **tu les fabriques toi-même** : aucun ne
+se télécharge d'ailleurs, sauf le `.cer` qu'Apple te rend à la fin. Ils
+naissent dans le dossier où tu lances les commandes, et ils y restent.
+
+Crée donc un dossier pour les accueillir, par exemple
+`Documents\signature-ios`, clic droit dedans → *Open Git Bash here*. Tout ce
+qui suit se passe dans cette fenêtre et dans ce dossier.
+
+**La demande de signature**, qui prouve à Apple que la clé privée est à toi :
 
 ```bash
 openssl genrsa -out distribution.key 2048
@@ -68,11 +75,17 @@ openssl req -new -key distribution.key -out demande.certSigningRequest \
   -subj "/emailAddress=TON_EMAIL/CN=QuickConvert/C=FR"
 ```
 
-Garde `distribution.key` : sans elle le certificat téléchargé ne sert à rien.
+Deux fichiers apparaissent dans le dossier : `distribution.key`, ta clé
+privée, et `demande.certSigningRequest`, la demande à remettre à Apple.
+
+Garde `distribution.key` précieusement : sans elle, le certificat téléchargé
+ensuite ne sert à rien, et il faut tout recommencer.
 
 **Le certificat** : portail Apple Developer → *Certificates* → **+** →
-*Apple Distribution* → dépose `demande.certSigningRequest` → télécharge le
-`.cer`. Puis, pour le convertir au format qu'attend le workflow :
+*Apple Distribution* → *Choose File*, et c'est là que tu vas chercher
+`demande.certSigningRequest` dans ton dossier, avec l'explorateur Windows
+habituel → *Continue* → *Download*. Apple te rend un `.cer` — déplace-le dans
+le même dossier, et renomme-le `distribution.cer` s'il porte un autre nom. Puis, pour le convertir au format qu'attend le workflow :
 
 ```bash
 openssl x509 -in distribution.cer -inform DER -out distribution.pem
