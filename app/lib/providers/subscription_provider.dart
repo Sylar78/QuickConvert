@@ -124,6 +124,16 @@ class SubscriptionProvider extends ChangeNotifier {
   String? get message => _message;
 
   bool get isReady => _availability == StoreAvailability.ready;
+
+  /// Le store repond, mais il ne propose aucune formule : produits absents ou
+  /// non publies dans la console, app installee autrement que par le store,
+  /// ou panne passagere. Sans ce cas, l'ecran montrait un bouton grise et
+  /// muet, ou l'utilisateur ne pouvait que deviner.
+  bool get offersUnavailable =>
+      _backend == BillingBackend.store &&
+      _availability == StoreAvailability.ready &&
+      _products.isEmpty &&
+      _flow != PurchaseFlowStatus.loadingProducts;
   bool get isBusy =>
       _flow == PurchaseFlowStatus.pending ||
       _flow == PurchaseFlowStatus.loadingProducts;
@@ -546,7 +556,14 @@ class SubscriptionProvider extends ChangeNotifier {
   Future<void> _buyFromStore(PremiumPlan plan) async {
     final iap = _iap;
     final product = _storeProductFor(plan);
-    if (iap == null || product == null) return;
+    if (iap == null || product == null) {
+      // Filet de securite : l'ecran desactive deja le bouton dans ce cas.
+      // Sortir en silence laisserait croire a un clic ignore.
+      _flow = PurchaseFlowStatus.failed;
+      _message = "Cette formule n'est pas proposee par le store pour le moment.";
+      _notify();
+      return;
+    }
 
     _flow = PurchaseFlowStatus.pending;
     _message = null;

@@ -125,6 +125,23 @@ class _PremiumScreenState extends State<PremiumScreen> {
         ];
 
       case StoreAvailability.ready:
+        if (subscriptions.offersUnavailable) {
+          return [
+            const _StoreNotice(
+              icon: Icons.schedule_rounded,
+              title: 'Les offres ne sont pas disponibles',
+              body: 'Le store ne propose aucune formule pour le moment. '
+                  'Ce n\'est pas ton appareil : réessaie plus tard, les '
+                  'conversions gratuites restent disponibles.',
+            ),
+            const SizedBox(height: AppSpacing.md),
+            OutlinedButton(
+              onPressed: subscriptions.isBusy ? null : _retry,
+              child: const Text('Réessayer'),
+            ),
+            ..._debugActivation(),
+          ];
+        }
         return [
           _buildPurchaseButton(subscriptions),
           const SizedBox(height: AppSpacing.sm),
