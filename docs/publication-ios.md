@@ -124,10 +124,40 @@ certificat ne sont à refaire.
 façon que l'outil de signature de macOS refuse, et le workflow échoue à
 l'import du certificat sans dire pourquoi.
 
-**Le profil** : portail → *Profiles* → **+** → *App Store Connect* →
-l'identifiant `fr.quickconvert.app` → le certificat que tu viens de créer →
-donne-lui un nom, que tu recopieras **exactement** dans le secret
-`IOS_PROVISIONING_PROFILE_NAME` → télécharge le `.mobileprovision`.
+### Le profil de provisionnement
+
+Le `.p12` est fini : range-le, tu n'y touches plus jusqu'aux secrets.
+
+Le profil est autre chose. Le certificat prouve **qui** signe ; le profil dit
+**quoi** : il lie l'app `fr.quickconvert.app`, ton certificat et ton équipe
+Apple. Sans lui, un binaire signé n'est accepté nulle part.
+
+Tout se passe dans le navigateur, sans aucune commande. Et tu **ne téléverses
+pas** le `.p12` : Apple connaît déjà ton certificat, puisque c'est lui qui te
+l'a délivré. Tu ne fais que le désigner dans une liste.
+
+Portail Apple Developer → *Certificates, Identifiers & Profiles* →
+*Profiles* → **+**, puis quatre écrans :
+
+1. *Register a New Provisioning Profile*. Sous **Distribution**, coche
+   **App Store Connect**. → *Continue*
+2. *Select an App ID* : déroule et choisis `fr.quickconvert.app`. S'il n'y
+   est pas, c'est qu'il n'a pas été enregistré à l'étape 3. → *Continue*
+3. *Select Certificates* : la liste de tes certificats de distribution.
+   Coche celui que tu viens de créer — s'il y en a plusieurs, c'est celui à
+   la date du jour. → *Continue*
+4. *Review, Name, and Generate* : le champ *Provisioning Profile Name*. Ce
+   nom, **tu l'inventes**, par exemple `QuickConvert App Store`. Retiens-le
+   au caractère près : c'est la valeur du secret
+   `IOS_PROVISIONING_PROFILE_NAME`, et le workflow échoue si elle diffère,
+   ne serait-ce que d'une majuscule. → *Generate*
+
+Enfin *Download* : tu obtiens un `.mobileprovision`. Mets-le dans le même
+dossier que le reste ; c'est lui que tu encoderas en base64 pour le secret
+`IOS_PROVISIONING_PROFILE_BASE64`.
+
+À ce stade tu as tout ce qu'il faut côté signature : `distribution.p12`, son
+mot de passe, le `.mobileprovision` et son nom.
 
 **La clé d'API** : App Store Connect → *Utilisateurs et accès* →
 *Intégrations* → *Clés App Store Connect* → **+**, rôle *App Manager*. Le
