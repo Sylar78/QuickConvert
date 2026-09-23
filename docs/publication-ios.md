@@ -100,7 +100,25 @@ openssl pkcs12 -export -legacy \
   -inkey distribution.key -in distribution.pem -out distribution.p12
 ```
 
-Le mot de passe demandé ici est celui du secret `IOS_DIST_CERT_PASSWORD`.
+La deuxième commande demande `Enter Export Password`. **Ce mot de passe, tu
+l'inventes maintenant** : il ne vient d'Apple ni de nulle part ailleurs, il
+protège seulement le `.p12`. C'est lui, et lui seul, que tu recopies dans le
+secret `IOS_DIST_CERT_PASSWORD`.
+
+Deux pièges : Git Bash n'affiche rien pendant que tu tapes, pas même des
+étoiles, et un mot de passe vide ne convient pas, parce qu'un secret GitHub
+ne peut pas l'être. Si tu préfères l'écrire dans la commande plutôt que le
+taper à l'aveugle, ajoute `-passout pass:TON_MOT_DE_PASSE`.
+
+Tu peux le vérifier tout de suite — si la commande ne dit rien, il est bon :
+
+```bash
+openssl pkcs12 -in distribution.p12 -legacy -nokeys -noout
+```
+
+En cas de doute, refaire le `.p12` avec un autre mot de passe ne coûte rien :
+c'est la dernière commande à relancer, ni la demande de signature ni le
+certificat ne sont à refaire.
 
 `-legacy` n'est pas un détail : sans lui, OpenSSL 3 chiffre le `.p12` d'une
 façon que l'outil de signature de macOS refuse, et le workflow échoue à
