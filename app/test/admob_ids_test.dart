@@ -23,9 +23,10 @@ void main() {
     });
   });
 
-  test('les blocs Android sont ceux du compte, pas ceux de test', () {
+  test('les quatre blocs sont ceux du compte, pas ceux de test', () {
     const compte = 'ca-app-pub-6336563192834287/';
-    expect(AppConstants.admobBannerIdAndroid, startsWith(compte));
-    expect(AppConstants.admobInterstitialIdAndroid, startsWith(compte));
+    blocs.forEach((nom, valeur) {
+      expect(valeur, startsWith(compte), reason: '$nom est reste un bloc de test.');
+    });
   });
 }

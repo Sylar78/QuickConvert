@@ -39,14 +39,8 @@ class AppConstants {
   static const String admobBannerIdAndroid = 'ca-app-pub-6336563192834287/3482546015';
   static const String admobInterstitialIdAndroid = 'ca-app-pub-6336563192834287/6052869030';
 
+  static const String admobBannerIdIos = 'ca-app-pub-6336563192834287/4933297825';
   static const String admobInterstitialIdIos = 'ca-app-pub-6336563192834287/3620216155';
-
-  // ATTENTION : toujours le bloc de test de Google. Le bloc banniere iOS reel
-  // n'a pas encore ete releve dans la console AdMob — la valeur fournie pour
-  // « BannerQuickConvert » etait l'ID de l'application, pas un bloc. Tant que
-  // cette ligne n'a pas change, la banniere iOS sert une annonce de test et ne
-  // rapporte rien.
-  static const String admobBannerIdIos = 'ca-app-pub-3940256099942544/2934735716';
 
   // In-App Purchase
   static const String premiumMonthlyId = 'quickconvert_premium_monthly';
