@@ -53,10 +53,12 @@
             </intent-filter>
         </activity>
 
-        <!-- AdMob App ID — remplace par ton vrai ID -->
+        <!-- AdMob App ID de l'app Android, compte pub-6336563192834287.
+             C'etait jusqu'ici l'ID de test de Google : aucune annonce reelle
+             ne pouvait etre servie, donc zero revenu. -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-6336563192834287~9992114041" />
 
         <meta-data
             android:name="flutterEmbedding"
