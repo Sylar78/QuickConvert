@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:quick_convert/core/constants.dart';
+import 'package:quick_convert/services/admob_service.dart';
 
 /// Deux pannes publicitaires sont nées de la même confusion : un identifiant
 /// d'application, à tilde, posé là où le SDK attend un bloc d'annonces, à
@@ -28,5 +29,12 @@ void main() {
     blocs.forEach((nom, valeur) {
       expect(valeur, startsWith(compte), reason: '$nom est reste un bloc de test.');
     });
+  });
+
+  // Les annonces non personnalisees sont ce qui dispense l'app de la demande
+  // d'autorisation de suivi d'iOS. Repasser en personnalisee sans ajouter
+  // cette demande ferait rejeter la soumission.
+  test('les annonces sont non personnalisees', () {
+    expect(AdmobService.adRequest.nonPersonalizedAds, isTrue);
   });
 }

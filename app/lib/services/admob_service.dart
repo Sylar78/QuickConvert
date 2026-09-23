@@ -22,6 +22,20 @@ class AdmobService {
       ? AppConstants.admobInterstitialIdAndroid
       : AppConstants.admobInterstitialIdIos;
 
+  // ─── Requete d'annonce ────────────────────────────────────────────────────
+  //
+  // Toutes les annonces de QuickConvert sont non personnalisees : elles ne
+  // s'appuient sur aucun historique de l'utilisateur. C'est ce qui dispense
+  // l'app de la demande d'autorisation de suivi d'iOS (ATT) et de la cle
+  // `NSUserTrackingUsageDescription` — sans ce choix, Apple exigerait les
+  // deux, et AdMob servirait quand meme des annonces non personnalisees a
+  // tous ceux qui refusent.
+  //
+  // Une seule requete partagee : si l'une des deux annonces l'oubliait, elle
+  // repasserait en personnalisee sans que rien ne le signale. Publique pour
+  // que ce choix soit verifiable par un test.
+  static const AdRequest adRequest = AdRequest(nonPersonalizedAds: true);
+
   // ─── Initialisation ───────────────────────────────────────────────────────
   Future<void> initialize() async {
     if (kIsWeb) return;
@@ -39,7 +53,7 @@ class AdmobService {
     _bannerAd = BannerAd(
       adUnitId: _bannerId,
       size: AdSize.banner,
-      request: const AdRequest(),
+      request: adRequest,
       listener: BannerAdListener(
         onAdLoaded: (_) {
           _isBannerLoaded = true;
@@ -65,7 +79,7 @@ class AdmobService {
     if (kIsWeb) return;
     await InterstitialAd.load(
       adUnitId: _interstitialId,
-      request: const AdRequest(),
+      request: adRequest,
       adLoadCallback: InterstitialAdLoadCallback(
         onAdLoaded: (ad) {
           _interstitialAd = ad;

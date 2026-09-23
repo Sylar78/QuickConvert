@@ -98,6 +98,17 @@ L'inspection du projet iOS a trouvé plusieurs motifs de rejet, traités :
   L'app n'utilise que HTTPS, qui est exempté.
 - **Une exception de transport pointait vers un projet Supabase** qui n'est
   plus utilisé. Supprimée.
+- **La publicité tournait sur les identifiants de test de Google**, côté iOS
+  comme dans le manifeste Android : zéro revenu, sans rien pour le signaler.
+  Les six identifiants réels du compte `pub-6336563192834287` sont en place,
+  et un test refuse désormais qu'un identifiant de test ou un identifiant
+  d'application revienne dans une constante de bloc.
+- **Le suivi publicitaire est tranché : annonces non personnalisées.**
+  `AdmobService.adRequest` porte `nonPersonalizedAds: true`, ce qui dispense
+  l'app de la demande d'autorisation de suivi (ATT) et de la clé
+  `NSUserTrackingUsageDescription`. Repasser un jour en personnalisé oblige à
+  ajouter les deux, sans quoi Apple rejette la soumission ; un test garde ce
+  choix.
 - **L'iPhone était bloqué en portrait.** `Info.plist` ne déclarait que le
   portrait alors que `main.dart` demande aussi le paysage et que la mise en
   page s'y adapte depuis la refonte : iOS ignorait la demande. Les deux
@@ -105,14 +116,6 @@ L'inspection du projet iOS a trouvé plusieurs motifs de rejet, traités :
 
 ## Ce qui reste à traiter avant une vraie soumission
 
-- **Les identifiants AdMob iOS sont ceux de test de Google**
-  (`ca-app-pub-3940256099942544…`), dans `Info.plist` comme dans
-  `app/lib/core/constants.dart`. Les laisser signifie zéro revenu, et c'est
-  contraire aux règles d'AdMob. Les identifiants Android, eux, sont réels.
-- **Le suivi publicitaire.** Si tu veux des publicités personnalisées, iOS
-  impose la demande d'autorisation de suivi (ATT) et la clé
-  `NSUserTrackingUsageDescription`. Sans elle, il faut configurer AdMob en
-  publicités non personnalisées. En l'état, ni l'une ni l'autre n'est faite.
 - **Aucune compilation iOS n'a jamais eu lieu** dans ce dépôt : il n'y a pas
   de `Podfile.lock`. La première exécution du workflow est donc aussi le
   premier vrai test de compilation, et peut demander des ajustements.
