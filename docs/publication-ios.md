@@ -233,51 +233,156 @@ base64 -w0 distribution.p12            # Linux
 Le même geste vaut pour le `.mobileprovision`. Le `.p8`, lui, se colle tel
 quel, sans encodage, en-têtes `-----BEGIN PRIVATE KEY-----` comprises.
 
-## 6. Déclencher
+## 6. Déclencher la construction
 
-**Par étiquette** :
+### D'abord : le numéro de version ne vient pas de l'étiquette
+
+C'est le piège de cette étape. La version de l'app est **une seule ligne**,
+dans `app/pubspec.yaml` :
+
+```yaml
+version: 1.0.1+4
+```
+
+`1.0.1` est la version affichée sur l'App Store, `4` le numéro de build.
+L'étiquette `ios-v…` ne fait que **déclencher** le workflow : poser
+`ios-v1.0.2` sur un dépôt resté en `1.0.1+4` produit une app 1.0.1, pas 1.0.2.
+
+Apple refuse un build dont le numéro a déjà été déposé pour la même version.
+Donc à chaque envoi, au minimum, ce numéro doit augmenter.
+
+Avant de déclencher, décide donc :
+
+- **Simple correction, même version publique** : passe `1.0.1+4` à `1.0.1+5`.
+- **Nouvelle version publique** : passe à `1.0.2+5`.
+
+Puis commite et pousse cette ligne, avant de poser l'étiquette.
+
+### Par étiquette
 
 ```bash
 git tag ios-v1.0.2
 git push origin ios-v1.0.2
 ```
 
-**À la main** : onglet *Actions* → *Publier sur TestFlight* → *Run workflow*,
-avec au besoin un numéro de build.
+Le nom de l'étiquette est libre tant qu'il commence par `ios-v`. Donne-lui
+la même valeur que `pubspec.yaml`, sinon l'historique devient illisible.
 
-L'archive `.ipa` est conservée trente jours comme artefact : si le dépôt
-échoue, tu peux la déposer à la main avec Transporter sans reconstruire.
+### À la main
+
+Onglet *Actions* du dépôt → *Publier sur TestFlight* → *Run workflow*. Le
+champ *Numéro de build* est facultatif : rempli, il l'emporte sur celui de
+`pubspec.yaml` le temps de cette exécution. Pratique pour renvoyer un build
+sans toucher au dépôt.
+
+### Ce qui se passe, et où regarder
+
+Le workflow vérifie d'abord que les huit secrets sont là, puis analyse et
+teste le code. Il échoue à ce moment-là si quelque chose ne va pas,
+c'est-à-dire **avant** d'avoir touché à la signature — un échec précoce ne
+consomme presque rien.
+
+Suis l'exécution dans l'onglet *Actions*. Un runner macOS est lent : la
+compilation d'une app Flutter iOS prend un bon moment, sans rien afficher
+d'inquiétant.
+
+L'archive `.ipa` est conservée trente jours, sous *Artifacts* sur la page de
+l'exécution. Si seule la dernière étape échoue, le dépôt sur TestFlight, tu
+peux la télécharger et la déposer à la main avec Transporter sans tout
+reconstruire.
+
+Quand le workflow est vert, Apple prend encore quelques minutes à traiter le
+build avant qu'il n'apparaisse dans l'onglet *TestFlight*. Un refus à ce
+stade arrive par courriel, et ne vient jamais du workflow.
 
 ## 7. Les abonnements dans App Store Connect
 
-À créer sous **exactement** les mêmes identifiants que Google Play, parce que
-le code n'en connaît qu'un jeu :
+### Un préalable qui bloque tout
 
-- `quickconvert_premium_monthly`
-- `quickconvert_premium_yearly`
+*Accords, taxes et virements bancaires* : le contrat **Paid Applications**
+doit être signé, et les informations bancaires et fiscales complètes. Tant
+que ce n'est pas fait, les abonnements restent indisponibles et l'app
+affichera « offres indisponibles » sans autre explication. C'est le blocage
+le plus fréquent, et il n'a rien à voir avec le code.
 
-Ils doivent appartenir au **même groupe d'abonnements**, sans quoi un
-utilisateur pourrait souscrire les deux en même temps. Apple exige aussi une
-capture d'écran de l'écran Premium et une description pour la validation.
+### Créer le groupe, puis les deux abonnements
+
+*Monétisation* → *Abonnements* → commence par créer un **groupe
+d'abonnements**, par exemple `Premium`.
+
+Le groupe compte autant que les abonnements : deux abonnements du même groupe
+s'excluent, l'utilisateur ne peut en avoir qu'un à la fois et passe de l'un à
+l'autre proprement. Dans deux groupes différents, il pourrait payer les deux.
+
+Dans ce groupe, crée deux abonnements sous **exactement** ces identifiants,
+qui sont ceux que le code demande et ceux déjà créés sur Google Play :
+
+- `quickconvert_premium_monthly`, durée un mois
+- `quickconvert_premium_yearly`, durée un an
+
+Une faute de frappe ici ne se voit pas : l'app dira simplement que l'offre
+est indisponible.
+
+Pour chacun, il faut ensuite un prix, et une localisation française avec un
+nom affiché et une description — c'est ce que l'utilisateur lit dans la
+fenêtre d'achat, pas ce que montre l'écran Premium de l'app.
+
+### Ce qu'Apple demande pour la validation
+
+Une capture d'écran de l'écran Premium de l'app, et une note pour
+l'examinateur. Les abonnements sont examinés **avec la première version** de
+l'app : ils ne peuvent pas être validés séparément.
+
+### Tester avant de publier
+
+*Utilisateurs et accès* → *Testeurs Sandbox* : crée un compte de test avec
+une adresse qui n'est **pas** ton identifiant Apple. Sur l'iPhone,
+*Réglages* → *Développeur* → *Compte Sandbox*. Les achats y sont gratuits et
+les durées raccourcies, un abonnement annuel s'y renouvelle en une heure.
 
 ## 8. Soumettre à l'App Store
 
-Le workflow s'arrête à TestFlight. La suite est manuelle, et c'est voulu :
-une soumission déclenche une validation humaine chez Apple.
+Le workflow s'arrête à TestFlight, et c'est voulu : une soumission déclenche
+un examen humain chez Apple, qui ne doit pas partir sur une étiquette posée
+par mégarde.
 
-1. La version apparaît dans App Store Connect, onglet *TestFlight*, après
-   quelques minutes de traitement.
-2. Remplis la fiche : captures d'écran, description, mots-clés, catégorie,
-   URL de confidentialité (`https://quickconvert.app/privacy`), et le
-   questionnaire de confidentialité. L'app ne fait pas de suivi publicitaire,
-   donc réponds non au suivi — voir la décision sur les annonces non
-   personnalisées plus bas.
-3. Onglet *Distribution*, choisis la version construite, puis
-   *Ajouter pour examen*.
+### Remplir la fiche
+
+Dans App Store Connect, la version qui attend :
+
+- **Nom** : QuickDocumentConvert, sous-titre, catégorie.
+- **Captures d'écran** : au format iPhone 6,7 pouces, et iPad si tu
+  distribues sur iPad — le projet déclare les deux, donc les deux jeux sont
+  demandés.
+- **Description, mots-clés, URL d'assistance**, et l'URL de confidentialité
+  `https://quickconvert.app/privacy`.
+- **Classification par âge** : un questionnaire à remplir.
+
+### Le questionnaire de confidentialité
+
+Il demande ce que l'app collecte. Réponds d'après **AdMob**, qui est le seul
+à collecter quelque chose ici : Google publie la liste de ce que son SDK
+récupère, et c'est elle qui fait foi, pas une intuition.
+
+Un point est déjà tranché : l'app ne fait **pas** de suivi au sens d'Apple,
+parce que les annonces sont non personnalisées. La question « suivez-vous les
+utilisateurs ? » se répond donc non, et c'est aussi pourquoi il n'y a pas de
+fenêtre d'autorisation de suivi au lancement.
+
+La conformité à l'export, elle, ne sera pas demandée : `Info.plist` y répond
+déjà.
+
+### Envoyer
+
+Onglet de la version → choisis le build arrivé par TestFlight →
+*Ajouter pour examen*.
 
 Le premier examen prend généralement un à trois jours. Un refus arrive avec
-son motif dans *Resolution Center*, et se corrige par une nouvelle étiquette
-`ios-v…` : rien à refaire à la main.
+son motif dans le *Resolution Center*.
+
+Et un refus ne se rattrape pas à la main : tu corriges le code, tu montes le
+numéro de build dans `pubspec.yaml`, tu poses une nouvelle étiquette, et tu
+resélectionnes le build dans la fiche. Le reste est déjà en place.
 
 ## Ce qui a été corrigé dans le projet
 
