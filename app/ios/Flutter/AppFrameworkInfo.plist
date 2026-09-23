@@ -20,5 +20,11 @@
   <string>????</string>
   <key>CFBundleVersion</key>
   <string>1.0</string>
+  <!-- Sans cette cle, App.framework part avec une MinimumOSVersion vide et
+       Apple refuse le depot. Le modele de Flutter la porte ; elle avait
+       disparu de ce fichier. Elle suit IPHONEOS_DEPLOYMENT_TARGET, defini a
+       13.0 dans le projet Xcode comme dans le Podfile. -->
+  <key>MinimumOSVersion</key>
+  <string>13.0</string>
 </dict>
 </plist>

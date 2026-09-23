@@ -337,6 +337,18 @@ Quand le workflow est vert, Apple prend encore quelques minutes à traiter le
 build avant qu'il n'apparaisse dans l'onglet *TestFlight*. Un refus à ce
 stade arrive par courriel, et ne vient jamais du workflow.
 
+### Si Apple refuse le dépôt pour cause de SDK
+
+Apple impose un SDK iOS minimum pour tout dépôt, et ce minimum monte chaque
+année. Le workflow tourne donc sur `macos-latest` et sélectionne le Xcode le
+plus récent de l'image, en vérifiant ce point dès la deuxième étape.
+
+Si elle échoue en disant que le SDK est trop ancien, c'est que l'image de
+GitHub a pris du retard sur l'exigence d'Apple. Deux leviers, dans cet ordre :
+passer `runs-on` à l'image macOS la plus récente que GitHub propose, et, si
+cela ne suffit pas, monter la version de Flutter — une version ancienne finit
+par ne plus compiler avec un Xcode très récent.
+
 ## 7. Les abonnements dans App Store Connect
 
 ### Un préalable qui bloque tout

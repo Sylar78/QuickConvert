@@ -42,7 +42,13 @@ jobs:
   publier:
     # Archiver une app iOS exige Xcode, donc un runner macOS. Sur un dépôt
     # privé, ces minutes comptent dix fois plus que celles de Linux.
-    runs-on: macos-14
+    #
+    # `macos-latest` plutôt qu'une image figée : Apple impose un SDK iOS
+    # minimum qui monte chaque année, et une image figée finit par être
+    # refusée au dépôt. L'étape « Choisir la version de Xcode » vérifie ce
+    # point dès le début et dit clairement quoi faire si l'image ne suffit
+    # plus.
+    runs-on: macos-latest
     timeout-minutes: 60
 
     steps:
@@ -70,6 +76,27 @@ jobs:
           [ -n "$PRIVATE_KEY" ]   || manquants="$manquants APP_STORE_CONNECT_PRIVATE_KEY"
           if [ -n "$manquants" ]; then
             echo "::error::Secrets absents :$manquants — voir docs/publication-ios.md"
+            exit 1
+          fi
+
+      # Apple refuse toute app construite avec un SDK iOS trop ancien : c'est
+      # ce qui a fait échouer le premier dépôt, avec un runner resté sur
+      # Xcode 15.4 et son SDK 17.5. L'image embarque plusieurs Xcode ; on
+      # prend le plus récent et on vérifie son SDK tout de suite, plutôt que
+      # de l'apprendre un quart d'heure plus tard au moment du dépôt.
+      - name: Choisir la version de Xcode
+        env:
+          SDK_MINIMUM: '26'
+        run: |
+          echo "Xcode installés sur l'image :"
+          ls -d /Applications/Xcode*.app
+          recent="$(ls -d /Applications/Xcode*.app | sort -V | tail -n 1)"
+          sudo xcode-select -s "$recent/Contents/Developer"
+          xcodebuild -version
+          sdk="$(xcrun --sdk iphoneos --show-sdk-version)"
+          echo "SDK iOS retenu : $sdk"
+          if [ "${sdk%%.*}" -lt "$SDK_MINIMUM" ]; then
+            echo "::error::SDK iOS $sdk, or Apple exige le $SDK_MINIMUM ou plus récent. Aucun Xcode assez récent sur cette image : voir docs/publication-ios.md."
             exit 1
           fi
 
