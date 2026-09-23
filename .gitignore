@@ -35,6 +35,12 @@ app/build/*
 !app/build/web/**
 app/.dart_tool/flutter_build/
 
+# La copie figee a la racine a ete supprimee le 23 septembre 2026. Ces deux
+# regles empechent un `flutter` lance par erreur a la racine de re-versionner
+# des centaines de fichiers generes, comme c'etait le cas avant.
+/.dart_tool/
+/build/
+
 # pubspec.lock (garder pour la reproductibilité)
 # app/pubspec.lock  # décommenter si tu veux l'exclure
 
