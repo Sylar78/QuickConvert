@@ -1,0 +1,51 @@
+name: Vérifier iOS
+
+# Compile l'app iOS sans signature quand une pull request touche au code
+# iOS ou aux dépendances. À part de verification.yml : les machines macOS
+# coûtent dix fois plus de minutes à un dépôt privé, celle-ci ne démarre donc
+# que si c'est utile.
+
+on:
+  pull_request:
+    paths:
+      - 'app/ios/**'
+      - 'app/pubspec.yaml'
+      - 'app/pubspec.lock'
+      - '.github/workflows/verification-ios.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verification-ios-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: 3.24.5
+
+jobs:
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      # Le même Xcode que la publication TestFlight : le plus récent de l'image.
+      - name: Choisir la version de Xcode
+        run: |
+          recent="$(ls -d /Applications/Xcode*.app | sort -V | tail -n 1)"
+          sudo xcode-select -s "$recent/Contents/Developer"
+          xcodebuild -version
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Compiler l'app iOS (sans signature)
+        working-directory: app
+        run: |
+          flutter pub get
+          flutter build ios --debug --no-codesign

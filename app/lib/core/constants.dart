@@ -42,6 +42,17 @@ class AppConstants {
   static const String admobBannerIdIos = 'ca-app-pub-6336563192834287/4933297825';
   static const String admobInterstitialIdIos = 'ca-app-pub-6336563192834287/3620216155';
 
+  /// Blocs « avec récompense » (une vidéo contre des conversions en plus).
+  /// Vides tant qu'ils n'ont pas été créés dans AdMob : la fonction est alors
+  /// masquée en production, et utilise les blocs de test de Google en
+  /// débogage pour pouvoir l'essayer.
+  static const String admobRewardedIdAndroid = '';
+  static const String admobRewardedIdIos = '';
+
+  /// Conversions gagnées par vidéo regardée, et vidéos possibles par jour.
+  static const int rewardedBonusConversions = 2;
+  static const int rewardedAdsPerDay = 3;
+
   // In-App Purchase
   static const String premiumMonthlyId = 'quickconvert_premium_monthly';
   static const String premiumYearlyId = 'quickconvert_premium_yearly';

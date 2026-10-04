@@ -59,11 +59,12 @@ class ConversionProvider extends ChangeNotifier {
   }) async {
     if (files.isEmpty) return;
 
-    if (!isPremium &&
-        _historyService.todayCount >= AppConstants.freeConversionsPerDay) {
+    final dailyLimit =
+        AppConstants.freeConversionsPerDay + BonusService().bonusToday();
+    if (!isPremium && _historyService.todayCount >= dailyLimit) {
       _fail(
-        'Tu as utilisé tes ${AppConstants.freeConversionsPerDay} conversions '
-        'gratuites du jour. Passe à Premium pour continuer sans limite.',
+        'Tu as utilisé tes $dailyLimit conversions gratuites du jour. '
+        'Passe à Premium pour continuer sans limite.',
       );
       return;
     }
@@ -119,6 +120,8 @@ class ConversionProvider extends ChangeNotifier {
         outputSize: outputSize,
         isSuccess: true,
       );
+
+      await ReviewService().recordSuccess();
 
       _state = ConversionState.success;
       _setProgress(1.0);

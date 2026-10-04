@@ -9,6 +9,10 @@ class UserModel {
   /// par `AuthProvider.refreshQuota()`.
   final int conversionsToday;
 
+  /// Conversions gagnées aujourd'hui en regardant une vidéo, relues par
+  /// `AuthProvider.refreshQuota()` depuis `BonusService`.
+  final int bonusConversions;
+
   final DateTime? premiumExpiresAt;
   final DateTime createdAt;
 
@@ -17,25 +21,27 @@ class UserModel {
     this.email,
     this.isPremium = false,
     this.conversionsToday = 0,
+    this.bonusConversions = 0,
     this.premiumExpiresAt,
     required this.createdAt,
   });
 
-  bool get canConvert =>
-      isPremium || conversionsToday < AppConstants.freeConversionsPerDay;
+  /// Conversions gratuites permises aujourd'hui, vidéos comprises.
+  int get dailyLimit => AppConstants.freeConversionsPerDay + bonusConversions;
+
+  bool get canConvert => isPremium || conversionsToday < dailyLimit;
 
   /// Conversions gratuites restantes. `-1` pour un compte Premium, qui n'a
   /// pas de limite.
-  int get remainingConversions => isPremium
-      ? -1
-      : (AppConstants.freeConversionsPerDay - conversionsToday)
-          .clamp(0, AppConstants.freeConversionsPerDay);
+  int get remainingConversions =>
+      isPremium ? -1 : (dailyLimit - conversionsToday).clamp(0, dailyLimit);
 
   UserModel copyWith({
     String? id,
     String? email,
     bool? isPremium,
     int? conversionsToday,
+    int? bonusConversions,
     DateTime? premiumExpiresAt,
     DateTime? createdAt,
   }) {
@@ -44,6 +50,7 @@ class UserModel {
       email: email ?? this.email,
       isPremium: isPremium ?? this.isPremium,
       conversionsToday: conversionsToday ?? this.conversionsToday,
+      bonusConversions: bonusConversions ?? this.bonusConversions,
       premiumExpiresAt: premiumExpiresAt ?? this.premiumExpiresAt,
       createdAt: createdAt ?? this.createdAt,
     );

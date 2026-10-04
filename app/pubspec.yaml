@@ -46,6 +46,9 @@ dependencies:
   # In-app purchase (Premium)
   in_app_purchase: ^3.2.0
 
+  # Demande de note sur les stores
+  in_app_review: ^2.0.9
+
   # Local storage & history
   hive: ^2.2.3
   hive_flutter: ^1.1.0

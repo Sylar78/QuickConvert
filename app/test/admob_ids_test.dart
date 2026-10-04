@@ -31,6 +31,19 @@ void main() {
     });
   });
 
+  // Les blocs avec recompense restent vides tant qu'ils n'existent pas dans
+  // AdMob (la fonction est alors masquee) ; une fois remplis, ce sont des
+  // blocs du compte, jamais ceux de test de Google.
+  test('les blocs avec recompense sont vides ou ceux du compte', () {
+    for (final valeur in [
+      AppConstants.admobRewardedIdAndroid,
+      AppConstants.admobRewardedIdIos,
+    ]) {
+      if (valeur.isEmpty) continue;
+      expect(valeur, matches(RegExp(r'^ca-app-pub-6336563192834287/\d+$')));
+    }
+  });
+
   // Les annonces non personnalisees sont ce qui dispense l'app de la demande
   // d'autorisation de suivi d'iOS. Repasser en personnalisee sans ajouter
   // cette demande ferait rejeter la soumission.

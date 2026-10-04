@@ -10,11 +10,18 @@ class QuotaCard extends StatelessWidget {
   final int total;
   final VoidCallback onUpgrade;
 
+  /// Propose une vidéo contre [videoBonus] conversions. `null` quand aucune
+  /// n'est disponible : bloc publicitaire absent, web, ou plafond du jour.
+  final VoidCallback? onWatchVideo;
+  final int videoBonus;
+
   const QuotaCard({
     super.key,
     required this.remaining,
     required this.total,
     required this.onUpgrade,
+    this.onWatchVideo,
+    this.videoBonus = 0,
   });
 
   @override
@@ -46,58 +53,79 @@ class QuotaCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(AppRadius.md),
               border: Border.all(color: palette.border),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SizedBox(
-                  width: 42,
-                  height: 42,
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      SizedBox.expand(
-                        child: CircularProgressIndicator(
-                          value: total == 0 ? 0 : remaining / total,
-                          strokeWidth: 3.5,
-                          strokeCap: StrokeCap.round,
-                          backgroundColor: palette.sunken,
-                          valueColor: AlwaysStoppedAnimation<Color>(accent),
-                        ),
+                Row(
+                  children: [
+                    SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          SizedBox.expand(
+                            child: CircularProgressIndicator(
+                              value: total == 0 ? 0 : remaining / total,
+                              strokeWidth: 3.5,
+                              strokeCap: StrokeCap.round,
+                              backgroundColor: palette.sunken,
+                              valueColor: AlwaysStoppedAnimation<Color>(accent),
+                            ),
+                          ),
+                          Text(
+                            '$remaining',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: accent,
+                            ),
+                          ),
+                        ],
                       ),
-                      Text(
-                        '$remaining',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                          color: accent,
-                        ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            exhausted
+                                ? 'Limite du jour atteinte'
+                                : remaining > 1
+                                    ? '$remaining conversions restantes'
+                                    : 'Dernière conversion gratuite',
+                            style: context.texts.titleMedium,
+                          ),
+                          const SizedBox(height: AppSpacing.xxs),
+                          Text(
+                            exhausted
+                                ? (onWatchVideo != null
+                                    ? 'Regarde une vidéo ou passe à Premium'
+                                    : 'Passe à Premium pour continuer')
+                                : total > AppConstants.freeConversionsPerDay
+                                ? '${AppConstants.freeConversionsPerDay} par jour, '
+                                    '+${total - AppConstants.freeConversionsPerDay} '
+                                    'grâce aux vidéos'
+                                : '$total par jour, sans compte',
+                            style: context.texts.bodySmall,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                    Icon(Icons.chevron_right_rounded, color: palette.textMuted),
+                  ],
                 ),
-                const SizedBox(width: AppSpacing.md),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        exhausted
-                            ? 'Limite du jour atteinte'
-                            : remaining > 1
-                                ? '$remaining conversions restantes'
-                                : 'Dernière conversion gratuite',
-                        style: context.texts.titleMedium,
-                      ),
-                      const SizedBox(height: AppSpacing.xxs),
-                      Text(
-                        exhausted
-                            ? 'Passe à Premium pour continuer'
-                            : '$total par jour, sans compte',
-                        style: context.texts.bodySmall,
-                      ),
-                    ],
+                if (onWatchVideo != null) ...[
+                  const SizedBox(height: AppSpacing.md),
+                  FilledButton.tonalIcon(
+                    onPressed: onWatchVideo,
+                    icon:
+                        const Icon(Icons.play_circle_outline_rounded, size: 20),
+                    label:
+                        Text('Regarder une vidéo · +$videoBonus conversions'),
                   ),
-                ),
-                Icon(Icons.chevron_right_rounded, color: palette.textMuted),
+                ],
               ],
             ),
           ),

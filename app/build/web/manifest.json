@@ -5,7 +5,7 @@
     "display": "standalone",
     "background_color": "#F7F8FC",
     "theme_color": "#5A4FE0",
-    "description": "Convertis tes fichiers PDF, JPG, PNG, DOC et SVG en deux gestes, depuis ton navigateur ou ton téléphone.",
+    "description": "Convertis tes fichiers PDF, JPG, PNG et SVG en deux gestes, depuis ton navigateur ou ton téléphone.",
     "orientation": "any",
     "prefer_related_applications": false,
     "icons": [

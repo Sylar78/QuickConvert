@@ -11,6 +11,7 @@ class AdmobService {
 
   InterstitialAd? _interstitialAd;
   bool _isInterstitialReady = false;
+  RewardedAd? _rewardedAd;
 
   // ─── IDs selon plateforme ─────────────────────────────────────────────────
   String get _bannerId => (!kIsWeb && Platform.isAndroid)
@@ -20,6 +21,26 @@ class AdmobService {
   String get _interstitialId => (!kIsWeb && Platform.isAndroid)
       ? AppConstants.admobInterstitialIdAndroid
       : AppConstants.admobInterstitialIdIos;
+
+  /// Blocs de test publics de Google pour les annonces avec récompense.
+  static const _testRewardedAndroid = 'ca-app-pub-3940256099942544/5224354917';
+  static const _testRewardedIos = 'ca-app-pub-3940256099942544/1712485313';
+
+  /// Le bloc avec récompense, ou une chaîne vide s'il n'en existe pas : en
+  /// production tant qu'il n'est pas créé dans AdMob, et toujours sur le web.
+  String get _rewardedId {
+    if (kIsWeb) return '';
+    final android = Platform.isAndroid;
+    final configured = android
+        ? AppConstants.admobRewardedIdAndroid
+        : AppConstants.admobRewardedIdIos;
+    if (configured.isNotEmpty) return configured;
+    if (!kDebugMode) return '';
+    return android ? _testRewardedAndroid : _testRewardedIos;
+  }
+
+  /// Vrai si l'app peut proposer une vidéo contre des conversions.
+  bool get rewardedAvailable => _rewardedId.isNotEmpty;
 
   // ─── Requete d'annonce ────────────────────────────────────────────────────
   //
@@ -40,6 +61,7 @@ class AdmobService {
     if (kIsWeb) return;
     await MobileAds.instance.initialize();
     await _loadInterstitial();
+    unawaited(_loadRewarded());
   }
 
   // ─── Banniere ─────────────────────────────────────────────────────────────
@@ -112,7 +134,58 @@ class AdmobService {
     }
   }
 
+  // ─── Avec récompense ──────────────────────────────────────────────────────
+  Future<void> _loadRewarded() async {
+    if (!rewardedAvailable || _rewardedAd != null) return;
+    await RewardedAd.load(
+      adUnitId: _rewardedId,
+      request: adRequest,
+      rewardedAdLoadCallback: RewardedAdLoadCallback(
+        onAdLoaded: (ad) => _rewardedAd = ad,
+        onAdFailedToLoad: (error) =>
+            debugPrint('Rewarded failed: ${error.message}'),
+      ),
+    );
+  }
+
+  /// Montre une vidéo avec récompense. Renvoie vrai seulement si
+  /// l'utilisateur l'a regardée jusqu'à la récompense ; faux si aucune
+  /// n'était prête (une autre est alors chargée) ou s'il l'a fermée avant.
+  Future<bool> showRewarded() async {
+    final ad = _rewardedAd;
+    if (ad == null) {
+      unawaited(_loadRewarded());
+      return false;
+    }
+    _rewardedAd = null;
+
+    final done = Completer<bool>();
+    var earned = false;
+    ad.fullScreenContentCallback = FullScreenContentCallback(
+      onAdDismissedFullScreenContent: (ad) {
+        ad.dispose();
+        unawaited(_loadRewarded());
+        if (!done.isCompleted) done.complete(earned);
+      },
+      onAdFailedToShowFullScreenContent: (ad, error) {
+        ad.dispose();
+        unawaited(_loadRewarded());
+        if (!done.isCompleted) done.complete(false);
+      },
+    );
+
+    try {
+      await ad.show(onUserEarnedReward: (_, __) => earned = true);
+    } catch (e) {
+      debugPrint('Rewarded show error: $e');
+      ad.dispose();
+      return false;
+    }
+    return done.future;
+  }
+
   void dispose() {
     _interstitialAd?.dispose();
+    _rewardedAd?.dispose();
   }
 }

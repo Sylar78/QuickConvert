@@ -75,7 +75,9 @@
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 
-	<!-- Types de fichiers supportés (DOC, DOCX, PDF) -->
+	<!-- Types de fichiers que l'app accepte depuis « Ouvrir avec » et
+	     « Partager » (Fichiers…), reçus par AppDelegate.swift. Word n'y est
+	     pas : DOC → PDF passe par le service cloud, pas encore en ligne. -->
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
@@ -90,17 +92,6 @@
 		</dict>
 		<dict>
 			<key>CFBundleTypeName</key>
-			<string>Word Document</string>
-			<key>LSHandlerRank</key>
-			<string>Alternate</string>
-			<key>LSItemContentTypes</key>
-			<array>
-				<string>org.openxmlformats.wordprocessingml.document</string>
-				<string>com.microsoft.word.doc</string>
-			</array>
-		</dict>
-		<dict>
-			<key>CFBundleTypeName</key>
 			<string>Image</string>
 			<key>LSHandlerRank</key>
 			<string>Alternate</string>
@@ -109,6 +100,7 @@
 				<string>public.image</string>
 				<string>public.jpeg</string>
 				<string>public.png</string>
+				<string>public.svg-image</string>
 			</array>
 		</dict>
 	</array>
