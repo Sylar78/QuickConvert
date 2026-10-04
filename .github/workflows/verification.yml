@@ -1,0 +1,63 @@
+name: Vérifier
+
+# À chaque pull request : analyse, tests, et compilation réelle d'Android et
+# d'iOS (sans signature). Les workflows de publication ne tournent qu'au
+# moment de publier : sans celui-ci, une erreur dans le code natif (Kotlin,
+# Swift, manifeste, Info.plist) ne se découvrait qu'à ce moment-là.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verification-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: 3.24.5
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Installer les dépendances
+        working-directory: app
+        run: flutter pub get
+
+      # `--no-fatal-infos` : voir publication-play.yml.
+      - name: Analyser
+        working-directory: app
+        run: flutter analyze --no-fatal-infos
+
+      - name: Tester l'app
+        working-directory: app
+        run: flutter test
+
+      - name: Tester les fonctions de paiement
+        run: node --test tests/*.test.js
+
+      # Debug : la release exige la clé de signature, absente ici.
+      - name: Compiler l'APK
+        working-directory: app
+        run: flutter build apk --debug

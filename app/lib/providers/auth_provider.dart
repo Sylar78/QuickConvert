@@ -11,6 +11,7 @@ class AuthProvider extends ChangeNotifier {
   // final SupabaseService _supabase = SupabaseService(); // AUTH DÉSACTIVÉE
   final HistoryService _historyService = HistoryService();
   final EntitlementService _entitlements = EntitlementService();
+  final BonusService _bonus = BonusService();
 
   AuthState _authState = AuthState.unknown;
   UserModel _user = UserModel.guest();
@@ -46,9 +47,18 @@ class AuthProvider extends ChangeNotifier {
   /// refusait de convertir.
   void refreshQuota() {
     final used = _historyService.todayCount;
-    if (used == _user.conversionsToday) return;
-    _user = _user.copyWith(conversionsToday: used);
+    final bonus = _bonus.bonusToday();
+    if (used == _user.conversionsToday && bonus == _user.bonusConversions) {
+      return;
+    }
+    _user = _user.copyWith(conversionsToday: used, bonusConversions: bonus);
     notifyListeners();
+  }
+
+  /// Ajoute au quota du jour les conversions d'une vidéo regardée.
+  Future<void> grantRewardedBonus() async {
+    await _bonus.grant();
+    refreshQuota();
   }
 
   // AUTH DÉSACTIVÉE — les méthodes de compte sont des no-ops.
@@ -92,6 +102,7 @@ class AuthProvider extends ChangeNotifier {
       email: _user.email,
       isPremium: entitlement.isActive,
       conversionsToday: _user.conversionsToday,
+      bonusConversions: _user.bonusConversions,
       premiumExpiresAt: entitlement.expiresAt,
       createdAt: _user.createdAt,
     );

@@ -1,3 +1,4 @@
+import '../core/constants.dart';
 import 'conversion_model.dart';
 import 'file_format.dart';
 
@@ -92,9 +93,20 @@ class ConversionCatalog {
   /// La route correspondant à un [ConversionType]. Tous les types en ont une.
   static ConversionRoute of(ConversionType type) => _byType[type]!;
 
+  /// Les conversions proposées dans ce build.
+  ///
+  /// Une conversion qui a besoin du service cloud n'apparaît que si son
+  /// adresse a été fournie au build (`QC_BACKEND_URL`) : sinon elle était
+  /// offerte puis échouait à chaque fois. [routes] garde toutes les entrées,
+  /// parce que l'historique doit pouvoir afficher une conversion passée.
+  static List<ConversionRoute> get available => [
+        for (final route in routes)
+          if (!route.requiresBackend || AppConstants.hasBackend) route,
+      ];
+
   /// Les formats que l'app sait ouvrir, dans l'ordre du catalogue.
   static List<FileFormat> get inputFormats =>
-      routes.map((r) => r.from).toSet().toList();
+      available.map((r) => r.from).toSet().toList();
 
   /// Toutes les extensions acceptées à l'import, pour le sélecteur de fichier.
   static List<String> get inputExtensions =>
@@ -102,11 +114,11 @@ class ConversionCatalog {
 
   /// Les conversions possibles depuis un format donné.
   static List<ConversionRoute> fromFormat(FileFormat input) =>
-      routes.where((r) => r.from == input).toList();
+      available.where((r) => r.from == input).toList();
 
   /// La route reliant deux formats, ou `null` si la conversion n'existe pas.
   static ConversionRoute? between(FileFormat from, FileFormat to) {
-    for (final route in routes) {
+    for (final route in available) {
       if (route.from == from && route.to == to) return route;
     }
     return null;

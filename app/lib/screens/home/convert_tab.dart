@@ -28,6 +28,36 @@ class ConvertTab extends StatefulWidget {
 
 class _ConvertTabState extends State<ConvertTab> {
   final _imagePicker = ImagePicker();
+  final _shared = SharedFilesService();
+
+  @override
+  void initState() {
+    super.initState();
+    _shared.incoming.addListener(_takeShared);
+    // Des fichiers ont pu arriver avant que l'écran existe (lancement par
+    // un partage) : on les prend après la première image.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _takeShared());
+  }
+
+  @override
+  void dispose() {
+    _shared.incoming.removeListener(_takeShared);
+    super.dispose();
+  }
+
+  void _takeShared() {
+    if (!mounted) return;
+    if (_shared.incoming.value == null) return;
+    // Une conversion en cours garde sa sélection ; le partage la remplace
+    // sinon, comme un nouveau choix de fichier.
+    if (context.read<ConversionProvider>().state == ConversionState.loading) {
+      _notify('Une conversion est en cours. Partage ton fichier juste après.');
+      _shared.consume();
+      return;
+    }
+    final files = _shared.consume();
+    if (files != null && files.isNotEmpty) _adopt(files);
+  }
 
   List<SourceFile> _files = [];
   FileFormat? _inputFormat;
@@ -103,8 +133,10 @@ class _ConvertTabState extends State<ConvertTab> {
     final existing = append ? _files : const <SourceFile>[];
     final format = (append ? _inputFormat : null) ??
         ConversionCatalog.detect(picked.first.name);
-    if (format == null) {
-      _notify('QuickConvert ne sait pas encore ouvrir ce format.');
+    // Un format reconnu peut n'avoir aucune conversion dans ce build : DOC
+    // tant que le service cloud n'est pas en ligne.
+    if (format == null || ConversionCatalog.fromFormat(format).isEmpty) {
+      _notify('QuickConvert ne sait pas encore convertir ce format.');
       return;
     }
 
@@ -187,6 +219,21 @@ class _ConvertTabState extends State<ConvertTab> {
     context.read<ConversionProvider>().reset();
   }
 
+  // ─── Vidéo avec récompense ────────────────────────────────────────────────
+
+  Future<void> _watchVideo() async {
+    final auth = context.read<AuthProvider>();
+    final earned = await AdmobService().showRewarded();
+    if (!mounted) return;
+    if (earned) {
+      await auth.grantRewardedBonus();
+      _notify('+${AppConstants.rewardedBonusConversions} conversions '
+          'ajoutées pour aujourd\'hui.');
+    } else {
+      _notify('Aucune vidéo pour l\'instant. Réessaie dans un moment.');
+    }
+  }
+
   // ─── Conversion ───────────────────────────────────────────────────────────
 
   Future<void> _convert() async {
@@ -243,6 +290,11 @@ class _ConvertTabState extends State<ConvertTab> {
     List<String> names,
     List<Uint8List> bytes,
   ) {
+    // La note se demande quand l'utilisateur referme le résultat, pas quand
+    // il part partager ou ouvrir son fichier : la fenêtre du store se
+    // superposerait à celle du partage.
+    var leftToUseFile = false;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -252,10 +304,12 @@ class _ConvertTabState extends State<ConvertTab> {
         route: route,
         canShare: !kIsWeb,
         onShare: () {
+          leftToUseFile = true;
           Navigator.pop(context);
           if (!kIsWeb) ShareService().shareFiles(names);
         },
         onOpen: () {
+          leftToUseFile = true;
           Navigator.pop(context);
           if (kIsWeb) {
             if (bytes.isNotEmpty) downloadFile(bytes.first, names.first);
@@ -268,7 +322,9 @@ class _ConvertTabState extends State<ConvertTab> {
           _clear();
         },
       ),
-    );
+    ).whenComplete(() {
+      if (!leftToUseFile) ReviewService().maybeAsk();
+    });
   }
 
   void _notify(String message, {bool offerUpgrade = false}) {
@@ -308,8 +364,14 @@ class _ConvertTabState extends State<ConvertTab> {
               if (!user.isPremium) ...[
                 QuotaCard(
                   remaining: user.remainingConversions,
-                  total: AppConstants.freeConversionsPerDay,
+                  total: user.dailyLimit,
                   onUpgrade: () => Navigator.pushNamed(context, '/premium'),
+                  videoBonus: AppConstants.rewardedBonusConversions,
+                  onWatchVideo: user.remainingConversions == 0 &&
+                          AdmobService().rewardedAvailable &&
+                          BonusService().canWatchMore()
+                      ? _watchVideo
+                      : null,
                 ),
                 const SizedBox(height: AppSpacing.xl),
               ],

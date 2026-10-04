@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/core.dart';
+import '../../services/services.dart';
 import '../history/history_screen.dart';
 import '../premium/premium_screen.dart';
 import '../settings/settings_screen.dart';
@@ -26,6 +27,27 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   void _select(int index) => setState(() => _selectedTab = index);
+
+  final _shared = SharedFilesService();
+
+  @override
+  void initState() {
+    super.initState();
+    _shared.incoming.addListener(_onShared);
+    _shared.start();
+  }
+
+  @override
+  void dispose() {
+    _shared.incoming.removeListener(_onShared);
+    super.dispose();
+  }
+
+  /// Un fichier partagé depuis une autre app ramène à l'écran de conversion,
+  /// qui le prend en charge.
+  void _onShared() {
+    if (_shared.incoming.value != null && _selectedTab != 0) _select(0);
+  }
 
   @override
   Widget build(BuildContext context) {
