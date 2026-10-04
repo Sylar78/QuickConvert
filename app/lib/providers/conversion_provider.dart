@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import '../core/constants.dart';
 import '../models/models.dart';
@@ -14,6 +16,7 @@ class ConversionProvider extends ChangeNotifier {
   final ConversionService _conversionService = ConversionService();
   final HistoryService _historyService = HistoryService();
   final AdmobService _adService = AdmobService();
+  final AdPacing _adPacing = AdPacing();
 
   ConversionState _state = ConversionState.idle;
   List<String> _outputPaths = [];
@@ -83,6 +86,12 @@ class ConversionProvider extends ChangeNotifier {
     _progress = 0.0;
     notifyListeners();
 
+    // La publicité passe au lancement, et la conversion tourne pendant
+    // qu'elle s'affiche : le résultat attend l'utilisateur quand il la ferme.
+    // Elle n'est jamais attendue, donc une annonce absente ou en panne ne
+    // retarde ni ne fait échouer la conversion.
+    if (!isPremium) unawaited(_maybeShowAd());
+
     final id = _conversionService.generateConversionId();
     final source = files.first;
 
@@ -113,10 +122,6 @@ class ConversionProvider extends ChangeNotifier {
 
       _state = ConversionState.success;
       _setProgress(1.0);
-
-      if (!isPremium) {
-        await _adService.showInterstitial();
-      }
     } catch (e) {
       await _record(
         id: id,
@@ -132,6 +137,11 @@ class ConversionProvider extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  Future<void> _maybeShowAd() async {
+    if (kIsWeb || !_adPacing.registerConversion()) return;
+    if (await _adService.showInterstitial()) _adPacing.markShown();
   }
 
   // ─── Cœur de la conversion, par plateforme ────────────────────────────────

@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024"><rect width="1024" height="1024" fill="#F6F7FB"/><g transform="translate(0.0 0.0) scale(1.0)">
+  <g transform="rotate(-7 293.0 501.0)">
+    <path d="M162,286 H372 L458,372 V682 Q458,716 424,716 H162 Q128,716 128,682 V320 Q128,286 162,286 Z" fill="#FFE3E3" transform="translate(-26 30)"/>
+    <path d="M162,286 H372 L458,372 V682 Q458,716 424,716 H162 Q128,716 128,682 V320 Q128,286 162,286 Z" fill="#FFFFFF" stroke="#C5C9D2" stroke-width="22" stroke-linejoin="round"/>
+    <!-- image -->
+    <rect x="190" y="352" width="150" height="104" rx="14" fill="#E8893A"/>
+    <path d="M204,442 l42,-46 32,32 22,-20 40,34 z" fill="#FFFFFF" opacity=".75"/>
+    <circle cx="308" cy="382" r="13" fill="#FFFFFF" opacity=".85"/>
+    <!-- texte -->
+    <rect x="190" y="490" width="206" height="24" rx="12" fill="#1F6FE0"/>
+    <rect x="190" y="532" width="150" height="24" rx="12" fill="#1F6FE0"/>
+    <!-- tableau -->
+    <rect x="190" y="588" width="206" height="84" rx="12" fill="#2FA84F"/>
+    <path d="M190,616 h206 M190,644 h206 M260,588 v84 M328,588 v84"
+          stroke="#FFFFFF" stroke-width="8" opacity=".85"/>
+  </g>
+  <path d="M540,126 H796 L900,230 V606 Q900,646 860,646 H540 Q500,646 500,606 V166 Q500,126 540,126 Z" fill="#FFE3E3" transform="translate(-34 38)"/>
+  <path d="M540,126 H796 L900,230 V606 Q900,646 860,646 H540 Q500,646 500,606 V166 Q500,126 540,126 Z" fill="#FFFFFF" stroke="#C5C9D2" stroke-width="24" stroke-linejoin="round"/>
+  <text x="700.0" y="444.0" text-anchor="middle"
+        font-family="Inter" font-weight="700" font-size="164" letter-spacing="-4"
+        fill="#E5252A">PDF</text>
+  <rect x="592" y="490.0" width="216" height="22" rx="11" fill="#E5252A" opacity=".35"/>
+  <!-- flèches d'échange -->
+  <g stroke="#5A4FE0" stroke-width="34" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M372,792 H652 M600,742 L652,792 L600,842"/>
+    <path d="M652,890 H372 M424,840 L372,890 L424,940"/>
+  </g>
+  <!-- étincelles -->
+  <g stroke-linecap="round" stroke-width="18">
+    <path d="M190,150 v76 M152,188 h76" stroke="#4FC9C2"/>
+    <path d="M292,104 v40 M272,124 h40" stroke="#9BCF6B"/>
+  </g>
+</g></svg>

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -76,34 +77,39 @@ class AdmobService {
     );
   }
 
-  Future<void> showInterstitial({VoidCallback? onDismissed}) async {
-    if (kIsWeb) {
-      onDismissed?.call();
-      return;
-    }
-    if (!_isInterstitialReady || _interstitialAd == null) {
-      onDismissed?.call();
-      await _loadInterstitial();
-      return;
+  /// Affiche l'interstitiel s'il est prêt. Renvoie vrai s'il s'est affiché.
+  ///
+  /// Ne bloque jamais l'appelant sur le chargement : sans annonce prête, on
+  /// renvoie faux tout de suite et on en recharge une pour la prochaine fois.
+  /// Rien n'existe sur le web, où les bannières restent seules.
+  Future<bool> showInterstitial() async {
+    if (kIsWeb) return false;
+    final ad = _interstitialAd;
+    if (!_isInterstitialReady || ad == null) {
+      unawaited(_loadInterstitial());
+      return false;
     }
 
-    _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
+    _interstitialAd = null;
+    _isInterstitialReady = false;
+    ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdDismissedFullScreenContent: (ad) {
         ad.dispose();
-        _isInterstitialReady = false;
         _loadInterstitial();
-        onDismissed?.call();
       },
       onAdFailedToShowFullScreenContent: (ad, error) {
         ad.dispose();
-        _isInterstitialReady = false;
         _loadInterstitial();
-        onDismissed?.call();
       },
     );
 
-    await _interstitialAd!.show();
-    _interstitialAd = null;
+    try {
+      await ad.show();
+      return true;
+    } catch (e) {
+      debugPrint('Interstitial show error: $e');
+      return false;
+    }
   }
 
   void dispose() {
