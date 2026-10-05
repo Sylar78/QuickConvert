@@ -13,6 +13,14 @@
       "destination": "/privacy/index.html"
     },
     {
+      "source": "/privacy-choices",
+      "destination": "/privacy-choices/index.html"
+    },
+    {
+      "source": "/privacy-choices/",
+      "destination": "/privacy-choices/index.html"
+    },
+    {
       "source": "/terms",
       "destination": "/terms/index.html"
     },
