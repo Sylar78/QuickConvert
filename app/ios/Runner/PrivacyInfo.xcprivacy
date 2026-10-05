@@ -58,26 +58,77 @@
 	</array>
 
 	<!-- ═══════════════════════════════════════════
-	     Données collectées et envoyées à l'éditeur
-	     ═══════════════════════════════════════════ -->
+	     Données collectées
+	     ═══════════════════════════════════════════
+	     Uniquement par le kit Google AdMob, dans la version gratuite. Les
+	     fichiers convertis, l'historique et les réglages restent sur l'appareil
+	     et ne sont pas des données « collectées » au sens d'Apple.
+	     Doit concorder avec le questionnaire « Confidentialité de l'app »
+	     d'App Store Connect : voir docs/confidentialite-app-store.md. -->
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>
 
-		<!-- Identifiant publicitaire (AdMob) -->
+		<!-- Localisation approximative, déduite de l'IP par AdMob -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeCoarseLocation</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+
+		<!-- IDFV, lu par AdMob (l'IDFA n'est pas utilisé : pas de demande ATT) -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+
+		<!-- Affichages et clics sur les annonces -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeProductInteraction</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+
+		<!-- Annonces vues par l'utilisateur -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeAdvertisingData</string>
 			<key>NSPrivacyCollectedDataTypeLinked</key>
 			<false/>
 			<key>NSPrivacyCollectedDataTypeTracking</key>
-			<true/>
+			<false/>
 			<key>NSPrivacyCollectedDataTypePurposes</key>
 			<array>
 				<string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
 			</array>
 		</dict>
 
-		<!-- Données de diagnostic / crashs (Firebase / AdMob SDK) -->
+		<!-- Plantages du kit AdMob -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeCrashData</string>
@@ -87,12 +138,11 @@
 			<false/>
 			<key>NSPrivacyCollectedDataTypePurposes</key>
 			<array>
-				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
 				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
 			</array>
 		</dict>
 
-		<!-- Données de performance -->
+		<!-- Performances du kit AdMob -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypePerformanceData</string>
@@ -106,20 +156,31 @@
 			</array>
 		</dict>
 
+		<!-- Autres diagnostics du kit AdMob -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeOtherDiagnosticData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+
 	</array>
 
-	<!-- L'app elle-même ne suit pas l'utilisateur entre apps tierces/sites.
-	     AdMob peut le faire si l'utilisateur accorde l'autorisation ATT. -->
+	<!-- Aucun suivi : les annonces sont non personnalisées
+	     (AdmobService.adRequest) et l'app ne demande pas l'autorisation ATT.
+	     Ne pas déclarer de NSPrivacyTrackingDomains : iOS bloque les
+	     connexions vers ces domaines tant que l'utilisateur n'a pas accepté le
+	     suivi, ce qui couperait les publicités AdMob. -->
 	<key>NSPrivacyTracking</key>
 	<false/>
-
-	<!-- URL de la politique de confidentialité (à remplacer par la tienne) -->
 	<key>NSPrivacyTrackingDomains</key>
-	<array>
-		<string>googlesyndication.com</string>
-		<string>doubleclick.net</string>
-		<string>googleadservices.com</string>
-	</array>
+	<array/>
 
 </dict>
 </plist>
