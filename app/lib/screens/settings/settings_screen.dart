@@ -92,7 +92,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 onTap: () => _chooseTheme(themeProvider),
               ),
 
-              if (!user.isPremium) ...[
+              if (!user.isPremium &&
+                  context.watch<SubscriptionProvider>().canSellPremium) ...[
                 const SizedBox(height: AppSpacing.xl),
                 const _SectionHeader('Premium'),
                 _SettingsTile(

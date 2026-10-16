@@ -260,6 +260,7 @@ class _ConvertTabState extends State<ConvertTab> {
       type: route.type,
       files: _files,
       isPremium: auth.user.isPremium,
+      canUpgrade: context.read<SubscriptionProvider>().canSellPremium,
     );
 
     if (!mounted) return;
@@ -334,7 +335,8 @@ class _ConvertTabState extends State<ConvertTab> {
       ..showSnackBar(SnackBar(
         content: Text(message),
         duration: const Duration(seconds: 4),
-        action: offerUpgrade
+        action: offerUpgrade &&
+                context.read<SubscriptionProvider>().canSellPremium
             ? SnackBarAction(
                 label: 'Premium',
                 onPressed: () => Navigator.pushNamed(context, '/premium'),
@@ -349,6 +351,8 @@ class _ConvertTabState extends State<ConvertTab> {
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
     final history = context.watch<ConversionProvider>().history;
+    final canSellPremium =
+        context.watch<SubscriptionProvider>().canSellPremium;
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -365,7 +369,9 @@ class _ConvertTabState extends State<ConvertTab> {
                 QuotaCard(
                   remaining: user.remainingConversions,
                   total: user.dailyLimit,
-                  onUpgrade: () => Navigator.pushNamed(context, '/premium'),
+                  onUpgrade: canSellPremium
+                      ? () => Navigator.pushNamed(context, '/premium')
+                      : null,
                   videoBonus: AppConstants.rewardedBonusConversions,
                   onWatchVideo: user.remainingConversions == 0 &&
                           AdmobService().rewardedAvailable &&
