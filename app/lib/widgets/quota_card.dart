@@ -8,7 +8,9 @@ import '../core/core.dart';
 class QuotaCard extends StatelessWidget {
   final int remaining;
   final int total;
-  final VoidCallback onUpgrade;
+  /// `null` quand Premium ne peut pas être vendu ici (iPhone sans offre) : la
+  /// carte n'en parle alors plus.
+  final VoidCallback? onUpgrade;
 
   /// Propose une vidéo contre [videoBonus] conversions. `null` quand aucune
   /// n'est disponible : bloc publicitaire absent, web, ou plafond du jour.
@@ -19,7 +21,7 @@ class QuotaCard extends StatelessWidget {
     super.key,
     required this.remaining,
     required this.total,
-    required this.onUpgrade,
+    this.onUpgrade,
     this.onWatchVideo,
     this.videoBonus = 0,
   });
@@ -100,9 +102,15 @@ class QuotaCard extends StatelessWidget {
                           const SizedBox(height: AppSpacing.xxs),
                           Text(
                             exhausted
-                                ? (onWatchVideo != null
-                                    ? 'Regarde une vidéo ou passe à Premium'
-                                    : 'Passe à Premium pour continuer')
+                                ? switch ((onWatchVideo != null, onUpgrade != null)) {
+                                    (true, true) =>
+                                      'Regarde une vidéo ou passe à Premium',
+                                    (true, false) =>
+                                      'Regarde une vidéo pour continuer',
+                                    (false, true) =>
+                                      'Passe à Premium pour continuer',
+                                    (false, false) => 'Reviens demain',
+                                  }
                                 : total > AppConstants.freeConversionsPerDay
                                 ? '${AppConstants.freeConversionsPerDay} par jour, '
                                     '+${total - AppConstants.freeConversionsPerDay} '
@@ -113,7 +121,9 @@ class QuotaCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Icon(Icons.chevron_right_rounded, color: palette.textMuted),
+                    if (onUpgrade != null)
+                      Icon(Icons.chevron_right_rounded,
+                          color: palette.textMuted),
                   ],
                 ),
                 if (onWatchVideo != null) ...[

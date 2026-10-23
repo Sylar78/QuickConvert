@@ -56,6 +56,7 @@ class ConversionProvider extends ChangeNotifier {
     required List<SourceFile> files,
     required bool isPremium,
     int quality = 90,
+    bool canUpgrade = true,
   }) async {
     if (files.isEmpty) return;
 
@@ -64,7 +65,7 @@ class ConversionProvider extends ChangeNotifier {
     if (!isPremium && _historyService.todayCount >= dailyLimit) {
       _fail(
         'Tu as utilisé tes $dailyLimit conversions gratuites du jour. '
-        'Passe à Premium pour continuer sans limite.',
+        '${canUpgrade ? 'Passe à Premium pour continuer sans limite.' : 'Reviens demain pour continuer.'}',
       );
       return;
     }

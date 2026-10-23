@@ -134,6 +134,28 @@ class SubscriptionProvider extends ChangeNotifier {
       _availability == StoreAvailability.ready &&
       _products.isEmpty &&
       _flow != PurchaseFlowStatus.loadingProducts;
+
+  /// Faux quand l'iPhone n'a aucune offre à vendre. Apple refuse une app qui
+  /// montre un Premium qu'on ne peut pas acheter en achat intégré (règle
+  /// 3.1.1) : l'onglet et les incitations disparaissent alors, et reviennent
+  /// dès que l'App Store fournit les abonnements. Ailleurs, l'écran Premium
+  /// explique l'absence d'offre (voir [offersUnavailable]).
+  bool get canSellPremium => premiumSellable(
+        platform: defaultTargetPlatform,
+        backend: _backend,
+        hasProducts: _products.isNotEmpty,
+      );
+
+  @visibleForTesting
+  static bool premiumSellable({
+    required TargetPlatform platform,
+    required BillingBackend backend,
+    required bool hasProducts,
+  }) =>
+      backend != BillingBackend.store ||
+      platform != TargetPlatform.iOS ||
+      hasProducts;
+
   bool get isBusy =>
       _flow == PurchaseFlowStatus.pending ||
       _flow == PurchaseFlowStatus.loadingProducts;

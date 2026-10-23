@@ -108,10 +108,11 @@ class _AdPlaceholder extends StatelessWidget {
                 style: context.texts.bodySmall,
               ),
             ),
-            TextButton(
-              onPressed: () => Navigator.pushNamed(context, '/premium'),
-              child: const Text('Retirer'),
-            ),
+            if (context.watch<SubscriptionProvider>().canSellPremium)
+              TextButton(
+                onPressed: () => Navigator.pushNamed(context, '/premium'),
+                child: const Text('Retirer'),
+              ),
             const SizedBox(width: AppSpacing.sm),
           ],
         ),
