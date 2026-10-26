@@ -44,9 +44,6 @@ class SubscriptionModel {
         return [
           'Conversions illimitées',
           'Sans publicité',
-          'OCR (texte depuis photo)',
-          'Compression HD',
-          'Priorité serveur',
           'Support prioritaire',
         ];
     }
